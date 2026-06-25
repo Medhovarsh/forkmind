@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ForkMind 🧠 — Local-first LLM branching & debugging</title>
+    <meta
+      name="description"
+      content="Capture, visualize, branch, and regression-test LLM calls as a DAG. Free & local via Ollama, any OpenAI-compatible API, MCP for agents. Zero config."
+    />
+    <meta property="og:title" content="ForkMind 🧠" />
+    <meta
+      property="og:description"
+      content="Local-first LLM state branching & debugging. Treat AI context windows like a Git repo."
+    />
+    <meta property="og:image" content="./forkmind-dashboard.png" />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --accent: #58a6ff;
+        --accent-2: #3fb950;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.6;
+      }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+
+      header.hero {
+        text-align: center;
+        padding: 72px 20px 40px;
+        background: radial-gradient(60% 120% at 50% 0%, rgba(88, 166, 255, 0.12), transparent 70%);
+      }
+      .hero h1 { font-size: 56px; margin: 0 0 8px; letter-spacing: -0.02em; }
+      .hero .tag { font-size: 20px; color: var(--text); max-width: 680px; margin: 0 auto 10px; }
+      .hero .sub { color: var(--muted); max-width: 640px; margin: 0 auto 26px; }
+      .badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 26px; }
+      .badges img { height: 20px; }
+
+      .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+      .btn {
+        display: inline-block;
+        padding: 11px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        background: #21262d;
+        color: var(--text);
+      }
+      .btn:hover { text-decoration: none; border-color: var(--accent); }
+      .btn.primary { background: var(--accent-2); border-color: var(--accent-2); color: #06210f; }
+
+      .install {
+        max-width: 640px;
+        margin: 26px auto 0;
+        background: #010409;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 18px;
+        text-align: left;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 14px;
+        overflow-x: auto;
+      }
+      .install .c { color: var(--accent-2); }
+      .install .d { color: var(--muted); }
+
+      section { padding: 44px 0; border-top: 1px solid var(--border); }
+      section h2 { font-size: 26px; margin: 0 0 18px; }
+
+      .shot {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        display: block;
+      }
+      .caption { color: var(--muted); font-size: 14px; text-align: center; margin-top: 10px; }
+
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px;
+      }
+      .card h3 { margin: 0 0 6px; font-size: 17px; }
+      .card p { margin: 0; color: var(--muted); font-size: 14px; }
+      .card .ico { font-size: 22px; }
+
+      pre.block {
+        background: #010409;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        overflow-x: auto;
+        font-size: 13px;
+      }
+
+      footer { padding: 36px 20px 60px; text-align: center; color: var(--muted); border-top: 1px solid var(--border); }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <h1>ForkMind 🧠</h1>
+        <p class="tag">Local-first LLM state branching &amp; debugging.</p>
+        <p class="sub">
+          Treat AI context windows like a Git repo. Capture, visualize, branch, and
+          regression-test LLM calls as a DAG — free &amp; local via Ollama, any
+          OpenAI-compatible API, and MCP for agents. Zero config, no cloud, no account.
+        </p>
+        <div class="badges">
+          <a href="https://github.com/Medhovarsh/forkmind/blob/master/LICENSE"><img alt="MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a>
+          <a href="https://github.com/Medhovarsh/forkmind/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml/badge.svg" /></a>
+          <img alt="Node >=18" src="https://img.shields.io/badge/node-%E2%89%A518-43853d.svg" />
+          <a href="https://github.com/Medhovarsh/forkmind/blob/master/CONTRIBUTING.md"><img alt="Contributing" src="https://img.shields.io/badge/contributing-guide-blue.svg" /></a>
+        </div>
+        <div class="cta">
+          <a class="btn primary" href="https://github.com/Medhovarsh/forkmind">View on GitHub →</a>
+          <a class="btn" href="https://github.com/Medhovarsh/forkmind#readme">Read the docs</a>
+        </div>
+        <div class="install">
+          <span class="d"># run straight from the git link — no registry needed</span><br />
+          <span class="c">npx</span> github:medhovarsh/forkmind init<br />
+          <span class="c">npx</span> github:medhovarsh/forkmind start
+        </div>
+      </div>
+    </header>
+
+    <section>
+      <div class="wrap">
+        <img class="shot" src="./forkmind-demo.gif" alt="ForkMind dashboard demo: conversation DAG, node inspector, fork dialog" />
+        <p class="caption">
+          The dashboard: a conversation tree with a branch off the root, the node
+          inspector (request/response, tokens, provenance), and the Fork dialog.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>What it does</h2>
+        <div class="grid">
+          <div class="card"><div class="ico">🌳</div><h3>Branch like Git</h3><p>Every LLM call is a node in a DAG. Fork an alternative prompt or model from any historical turn.</p></div>
+          <div class="card"><div class="ico">🆓</div><h3>Free &amp; local</h3><p>Defaults to open-source models via Ollama. No API key, no database, no telemetry.</p></div>
+          <div class="card"><div class="ico">🔌</div><h3>Any provider</h3><p>Provider-agnostic proxy. OpenAI, Groq, OpenRouter, Together, LM Studio, vLLM, Anthropic.</p></div>
+          <div class="card"><div class="ico">📡</div><h3>Streaming</h3><p>Bytes pass through untouched; the proxy reconstructs the full message — text and tool calls.</p></div>
+          <div class="card"><div class="ico">🤖</div><h3>MCP for agents</h3><p>An agent can query its own history mid-task — recall attempts, trace lineage, self-correct.</p></div>
+          <div class="card"><div class="ico">✅</div><h3>Regression tests</h3><p>Pin good outputs as baselines, re-run after prompt tweaks, catch drift in CI.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Quick start</h2>
+        <pre class="block"><code># 1. a free local model (install Ollama from ollama.com)
+ollama pull llama3
+
+# 2. start ForkMind (proxy + dashboard on :4500)
+npx github:medhovarsh/forkmind start
+
+# 3. point your OpenAI client at the proxy
+#    baseURL: http://localhost:4500/v1
+#    open http://localhost:4500 for the dashboard</code></pre>
+        <p class="caption"><a href="https://github.com/Medhovarsh/forkmind#readme">Full documentation on GitHub →</a></p>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        ForkMind · MIT · built by
+        <a href="https://github.com/Medhovarsh">Medhovarsh Bayyapureddi</a> ·
+        <a href="https://github.com/Medhovarsh/forkmind">source</a>
+      </div>
+    </footer>
+  </body>
+</html>
