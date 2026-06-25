@@ -4,6 +4,7 @@
 [![CI](https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml/badge.svg)](https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-43853d.svg)](https://nodejs.org)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+[![Contributing](https://img.shields.io/badge/contributing-guide-blue.svg)](./CONTRIBUTING.md)
 
 **Local-first LLM state branching & debugging.** ForkMind treats AI context
 windows like a Git repository: it captures every LLM call into a local
