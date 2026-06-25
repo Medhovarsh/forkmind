@@ -1,5 +1,10 @@
 # ForkMind 🧠
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![CI](https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml/badge.svg)](https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml)
+[![Node](https://img.shields.io/badge/node-%E2%89%A518-43853d.svg)](https://nodejs.org)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+
 **Local-first LLM state branching & debugging.** ForkMind treats AI context
 windows like a Git repository: it captures every LLM call into a local
 `.forkmind/` directory, visualizes the conversation as a Directed Acyclic Graph
@@ -9,6 +14,11 @@ in the history — all on your machine, no cloud, no account.
 Works with **any OpenAI-compatible API**, defaulting to **free, open-source
 models** via [Ollama](https://ollama.com). Also supports Anthropic and any
 hosted free tier (Groq, OpenRouter, Together, vLLM, LM Studio).
+
+![ForkMind dashboard — conversation DAG with a branch, stream badges, and the node inspector](./docs/forkmind-dashboard.png)
+
+> The dashboard: a conversation tree with a branch off the root, streaming
+> badges, and the node inspector showing request/response, tokens, and provenance.
 
 ---
 
