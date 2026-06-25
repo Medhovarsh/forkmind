@@ -1,0 +1,70 @@
+{
+  "name": "forkmind",
+  "version": "0.1.0",
+  "description": "Local-first LLM state branching and debugging tool. Treat AI context windows like a Git repo.",
+  "main": "src/sdk/index.js",
+  "bin": {
+    "forkmind": "bin/forkmind.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "scripts",
+    "dashboard/dist"
+  ],
+  "workspaces": [
+    "dashboard"
+  ],
+  "scripts": {
+    "start": "node bin/forkmind.js start",
+    "init": "node bin/forkmind.js init",
+    "dashboard:dev": "npm --workspace dashboard run dev",
+    "dashboard:build": "npm --workspace dashboard run build",
+    "test": "jest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "prepare": "node scripts/prepare.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "llm",
+    "openai",
+    "anthropic",
+    "ollama",
+    "debugging",
+    "proxy",
+    "branching",
+    "dag",
+    "observability",
+    "local-first"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/forkmind"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "commander": "^12.1.0",
+    "express": "^4.21.0",
+    "fs-extra": "^11.2.0"
+  },
+  "peerDependencies": {
+    "openai": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "openai": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.37.5",
+    "jest": "^29.7.0",
+    "prettier": "^3.3.3",
+    "supertest": "^7.0.0"
+  }
+}

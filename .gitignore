@@ -1,0 +1,8 @@
+node_modules/
+dashboard/dist/
+.forkmind/
+*.log
+.DS_Store
+.env
+.env.local
+coverage/
