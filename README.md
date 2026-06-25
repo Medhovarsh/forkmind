@@ -160,6 +160,50 @@ your app ──▶ ForkMindOpenAI (baseURL = localhost:4500/v1)
 
 ---
 
+## MCP — let agents query their own history
+
+ForkMind ships an [MCP](https://modelcontextprotocol.io) server so an AI agent
+can read its own `.forkmind/` history mid-task and self-correct — recall what it
+already tried, see how it reached a state, or search past attempts.
+
+```bash
+forkmind mcp          # stdio MCP server (or: forkmind-mcp)
+```
+
+Register it with any MCP client (Claude Desktop / Claude Code / Cursor):
+
+```jsonc
+{
+  "mcpServers": {
+    "forkmind": {
+      "command": "npx",
+      "args": ["-y", "github:your-org/forkmind", "mcp"]
+    }
+  }
+}
+```
+
+Tools exposed:
+
+| Tool                | Purpose                                                   |
+| ------------------- | -------------------------------------------------------- |
+| `forkmind_recent`   | Newest captured turns (compact)                          |
+| `forkmind_get_node` | Full request + response for one node                     |
+| `forkmind_lineage`  | Root→node path — the exact context that produced a state |
+| `forkmind_children` | Sibling branches forking from a node                     |
+| `forkmind_search`   | Substring search across all requests/responses           |
+| `forkmind_stats`    | Tree totals: nodes, roots, leaves, providers             |
+
+The server reads the `.forkmind/` in its working directory — point the client's
+`cwd` at your project.
+
+## Zero cost & local
+
+- **No paid API required** — defaults to free local models via Ollama.
+- **No database** — every turn is a plain JSON file under `.forkmind/`.
+- **No account, no telemetry** — nothing leaves your machine except the LLM call
+  you were already making (relayed verbatim to the provider you choose).
+
 ## `.forkmind/` layout
 
 ```
@@ -218,7 +262,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 - [x] Provider-agnostic proxy (OpenAI-compatible + Anthropic) with streaming
 - [x] Drop-in SDK wrappers with auto-chaining
 - [x] React Flow dashboard + branch execution
-- [ ] MCP integration — let agents query their own `.forkmind/` history
+- [x] MCP integration — let agents query their own `.forkmind/` history
 - [ ] Automated regression: pin "good" branches, re-run on prompt edits
 
 ## License

@@ -4,6 +4,7 @@
 const { program } = require('commander');
 const { initStorage } = require('../src/storage/engine');
 const { startServer } = require('../src/proxy/server');
+const { startMcp } = require('../src/mcp/server');
 
 program
   .name('forkmind')
@@ -25,6 +26,17 @@ program
   .description('Start the ForkMind proxy server (default port 4500)')
   .action(() => {
     startServer();
+  });
+
+// `forkmind mcp` — expose .forkmind/ history to AI agents over MCP (stdio).
+program
+  .command('mcp')
+  .description('Start the MCP server so agents can query their .forkmind history')
+  .action(() => {
+    startMcp().catch((err) => {
+      console.error(`[forkmind] MCP failed to start: ${err.message}`);
+      process.exit(1);
+    });
   });
 
 program.parse(process.argv);

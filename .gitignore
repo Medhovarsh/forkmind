@@ -6,3 +6,4 @@ dashboard/dist/
 .env
 .env.local
 coverage/
+*.tgz

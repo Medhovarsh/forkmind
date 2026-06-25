@@ -4,7 +4,8 @@
   "description": "Local-first LLM state branching and debugging tool. Treat AI context windows like a Git repo.",
   "main": "src/sdk/index.js",
   "bin": {
-    "forkmind": "bin/forkmind.js"
+    "forkmind": "bin/forkmind.js",
+    "forkmind-mcp": "bin/forkmind-mcp.js"
   },
   "files": [
     "bin",
@@ -47,10 +48,12 @@
     "url": "https://github.com/your-org/forkmind"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "axios": "^1.7.7",
     "commander": "^12.1.0",
     "express": "^4.21.0",
-    "fs-extra": "^11.2.0"
+    "fs-extra": "^11.2.0",
+    "zod": "^3.23.8"
   },
   "peerDependencies": {
     "openai": "^4.0.0"

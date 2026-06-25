@@ -118,11 +118,61 @@ function readAllNodes() {
     .map((f) => fs.readJsonSync(path.join(nodesDir, f)));
 }
 
+/**
+ * Walk from a node up to its root via parentId, returning the lineage in
+ * root→node order. This is the actual conversation path that produced a node —
+ * the context an agent needs to understand "how did I get here".
+ * Cycle-guarded (shouldn't happen with content-addressed ids, but cheap safety).
+ * @param {string} id
+ * @returns {object[]} nodes from root to the given node (empty if id missing).
+ */
+function getLineage(id) {
+  const chain = [];
+  const seen = new Set();
+  let current = readNode(id);
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id);
+    chain.push(current);
+    current = current.parentId ? readNode(current.parentId) : null;
+  }
+  return chain.reverse();
+}
+
+/**
+ * Direct child branches of a node.
+ * @param {string} id
+ * @returns {object[]}
+ */
+function getChildren(id) {
+  const node = readNode(id);
+  if (!node || !Array.isArray(node.children)) return [];
+  return node.children.map((cid) => readNode(cid)).filter(Boolean);
+}
+
+/**
+ * Substring search across each node's request + response JSON (case-insensitive).
+ * @param {string} query
+ * @returns {object[]} matching nodes.
+ */
+function searchNodes(query) {
+  if (!query) return [];
+  const needle = query.toLowerCase();
+  return readAllNodes().filter((n) => {
+    const hay = (
+      JSON.stringify(n.request || '') + JSON.stringify(n.response || '')
+    ).toLowerCase();
+    return hay.includes(needle);
+  });
+}
+
 module.exports = {
   initStorage,
   saveNode,
   readNode,
   readAllNodes,
+  getLineage,
+  getChildren,
+  searchNodes,
   paths,
   nodePath,
 };
