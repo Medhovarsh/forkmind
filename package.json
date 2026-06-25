@@ -45,7 +45,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/forkmind"
+    "url": "https://github.com/medhovarsh/forkmind"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

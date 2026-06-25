@@ -32,15 +32,15 @@ is built automatically on install):
 
 ```bash
 # Run without installing
-npx github:your-org/forkmind init
-npx github:your-org/forkmind start
+npx github:medhovarsh/forkmind init
+npx github:medhovarsh/forkmind start
 
 # …or install the CLI globally from GitHub
-npm install -g github:your-org/forkmind
+npm install -g github:medhovarsh/forkmind
 forkmind start
 
 # …or clone to hack on it
-git clone https://github.com/your-org/forkmind
+git clone https://github.com/medhovarsh/forkmind
 cd forkmind && npm install
 ```
 
@@ -54,8 +54,8 @@ Once published to npm, `npx forkmind ...` / `npm i -g forkmind` work too.
 ollama pull llama3
 
 # 2. Init + start ForkMind
-npx github:your-org/forkmind init    # create .forkmind/ in your project
-npx github:your-org/forkmind start   # proxy on http://localhost:4500 + dashboard
+npx github:medhovarsh/forkmind init    # create .forkmind/ in your project
+npx github:medhovarsh/forkmind start   # proxy on http://localhost:4500 + dashboard
 
 # 3. Point your code at the proxy (see SDK below), make some calls
 
@@ -177,7 +177,7 @@ Register it with any MCP client (Claude Desktop / Claude Code / Cursor):
   "mcpServers": {
     "forkmind": {
       "command": "npx",
-      "args": ["-y", "github:your-org/forkmind", "mcp"]
+      "args": ["-y", "github:medhovarsh/forkmind", "mcp"]
     }
   }
 }
