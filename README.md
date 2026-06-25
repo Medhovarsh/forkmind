@@ -197,6 +197,42 @@ Tools exposed:
 The server reads the `.forkmind/` in its working directory — point the client's
 `cwd` at your project.
 
+## Regression testing — pin good outputs, catch degradation
+
+Tweaking a system prompt or swapping a model can silently degrade results.
+ForkMind lets you pin a known-good captured node as a **baseline**, then re-run
+its exact request later and check the new output for drift.
+
+```bash
+# 1. Pin a good node (grab its id from the dashboard or forkmind_recent)
+forkmind regression pin a1b2c3d4e5f6 \
+  --name octopus-fact \
+  --contains "hearts" \
+  --regex "blue|copper" \
+  --min-similarity 0.5
+
+# 2. List / remove cases
+forkmind regression list
+forkmind regression remove octopus-fact
+
+# 3. Re-run after changing prompts/models (exit code 1 if any case fails — CI-ready)
+forkmind regression run                 # keyless local (Ollama)
+forkmind regression run --key $GROQ_API_KEY --upstream https://api.groq.com/openai
+```
+
+Each case checks the replayed output against:
+
+- **`contains`** — substrings that must appear
+- **`not-contains`** — substrings that must NOT appear
+- **`regex`** — patterns that must match
+- **`min-similarity`** — Jaccard word-overlap vs the baseline (drift guard;
+  defaults to `0.3` so a wildly different answer fails even without explicit
+  assertions). LLM output is non-deterministic, so prefer assertions over exact
+  match.
+
+Cases are JSON in `.forkmind/regressions/` — commit them to share baselines and
+gate prompt changes in CI.
+
 ## Zero cost & local
 
 - **No paid API required** — defaults to free local models via Ollama.
@@ -263,7 +299,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 - [x] Drop-in SDK wrappers with auto-chaining
 - [x] React Flow dashboard + branch execution
 - [x] MCP integration — let agents query their own `.forkmind/` history
-- [ ] Automated regression: pin "good" branches, re-run on prompt edits
+- [x] Automated regression: pin "good" branches, re-run on prompt edits
 
 ## License
 

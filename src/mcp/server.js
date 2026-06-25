@@ -22,41 +22,9 @@ const {
   getChildren,
   searchNodes,
 } = require('../storage/engine');
+const { userPreview, assistantText, clip } = require('../lib/extract');
 
 // ---- compact serializers (keep agent token cost low) ----
-
-function userPreview(node) {
-  const msgs = node.request && node.request.messages;
-  if (Array.isArray(msgs) && msgs.length) {
-    const last = msgs[msgs.length - 1];
-    const c = last && last.content;
-    if (typeof c === 'string') return c;
-    if (Array.isArray(c)) {
-      const t = c.find((b) => b.type === 'text');
-      if (t) return t.text;
-    }
-  }
-  return '';
-}
-
-function assistantText(node) {
-  const r = node.response;
-  if (!r) return '';
-  if (r.choices && r.choices[0] && r.choices[0].message) {
-    const m = r.choices[0].message;
-    if (m.content) return m.content;
-    if (m.tool_calls) return `[tool_calls] ${JSON.stringify(m.tool_calls)}`;
-  }
-  if (Array.isArray(r.content)) {
-    return r.content.map((b) => b.text || `[${b.type}]`).join('\n');
-  }
-  return '';
-}
-
-function clip(s, n = 240) {
-  if (!s) return '';
-  return s.length > n ? `${s.slice(0, n)}…` : s;
-}
 
 /** One-line-ish compact view of a node for lists. */
 function compact(node) {
@@ -66,8 +34,8 @@ function compact(node) {
     provider: node.meta && node.meta.provider,
     model: node.request && node.request.model,
     timestamp: node.timestamp,
-    user: clip(userPreview(node)),
-    assistant: clip(assistantText(node)),
+    user: clip(userPreview(node.request)),
+    assistant: clip(assistantText(node.response)),
     childCount: Array.isArray(node.children) ? node.children.length : 0,
   };
 }
