@@ -5,6 +5,7 @@
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-43853d.svg)](https://nodejs.org)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 [![Contributing](https://img.shields.io/badge/contributing-guide-blue.svg)](./CONTRIBUTING.md)
+[![Contributors](https://img.shields.io/github/contributors/Medhovarsh/forkmind.svg)](https://github.com/Medhovarsh/forkmind/graphs/contributors)
 [![Live site](https://img.shields.io/badge/live-medhovarsh.github.io%2Fforkmind-58a6ff.svg)](https://medhovarsh.github.io/forkmind/)
 
 **Local-first LLM state branching & debugging.** ForkMind treats AI context
