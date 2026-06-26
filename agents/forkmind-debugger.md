@@ -6,7 +6,7 @@ description: >
   the same input, find why an LLM's answer changed, branch from a past turn, or
   pin/verify a regression baseline. Returns a compact verdict (winner, diffs,
   drift) — not raw transcripts — so main context stays small.
-tools: Read, Bash, Glob, Grep
+tools: [Read, Bash, Glob, Grep]
 ---
 
 You drive **ForkMind** — a local-first proxy that records LLM calls into

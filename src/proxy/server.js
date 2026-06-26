@@ -205,7 +205,7 @@ function startServer() {
   initStorage();
   const dashboardDist = path.join(__dirname, '..', '..', 'dashboard', 'dist');
   const app = createServer({ dashboardDist });
-  return app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     const hasDash = fs.existsSync(dashboardDist);
     console.log(`\n  ForkMind proxy  →  http://localhost:${PORT}`);
     console.log(`  Point your client baseURL at  http://localhost:${PORT}/v1`);
@@ -215,6 +215,18 @@ function startServer() {
       console.log(`  Dashboard (dev) →  run: npm run dashboard:dev\n`);
     }
   });
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(
+        `\n  Port ${PORT} is already in use — ForkMind may already be running.\n` +
+          `  Stop the other process, or set a different port:  FORKMIND_PORT=4600 forkmind start\n`
+      );
+    } else {
+      console.error(`\n  ForkMind failed to start: ${err.message}\n`);
+    }
+    process.exit(1);
+  });
+  return server;
 }
 
 module.exports = { createServer, startServer, makeHandler, drainSSE, PROVIDERS, PORT };
