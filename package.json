@@ -39,13 +39,25 @@
     "branching",
     "dag",
     "observability",
-    "local-first"
+    "local-first",
+    "llm-observability",
+    "prompt-engineering",
+    "ai-agents",
+    "mcp",
+    "model-context-protocol",
+    "llm-debugging",
+    "regression-testing",
+    "context-window"
   ],
-  "author": "",
+  "author": "Medhovarsh Bayyapureddi",
   "license": "MIT",
+  "homepage": "https://medhovarsh.github.io/forkmind/",
   "repository": {
     "type": "git",
     "url": "https://github.com/medhovarsh/forkmind"
+  },
+  "bugs": {
+    "url": "https://github.com/medhovarsh/forkmind/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

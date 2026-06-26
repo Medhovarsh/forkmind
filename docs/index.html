@@ -6,16 +6,112 @@
     <title>ForkMind 🧠 — Local-first LLM branching & debugging</title>
     <meta
       name="description"
-      content="Capture, visualize, branch, and regression-test LLM calls as a DAG. Free & local via Ollama, any OpenAI-compatible API, MCP for agents. Zero config."
+      content="ForkMind captures, visualizes, branches, and regression-tests LLM calls as a DAG. Free & local via Ollama, any OpenAI-compatible API, plus MCP for agents. Zero config, no cloud, no account."
     />
-    <meta property="og:title" content="ForkMind 🧠" />
+    <meta name="author" content="Medhovarsh Bayyapureddi" />
+    <meta
+      name="keywords"
+      content="LLM debugging, LLM observability, prompt engineering tool, Ollama, OpenAI proxy, MCP, model context protocol, AI agent debugging, local-first, conversation DAG, regression testing LLM"
+    />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="canonical" href="https://medhovarsh.github.io/forkmind/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="ForkMind 🧠 — Local-first LLM branching & debugging" />
     <meta
       property="og:description"
-      content="Local-first LLM state branching & debugging. Treat AI context windows like a Git repo."
+      content="Local-first LLM state branching & debugging. Treat AI context windows like a Git repo. Free & local via Ollama, any OpenAI-compatible API, and MCP for agents."
     />
-    <meta property="og:image" content="./forkmind-dashboard.png" />
+    <meta property="og:image" content="https://medhovarsh.github.io/forkmind/forkmind-dashboard.png" />
+    <meta property="og:url" content="https://medhovarsh.github.io/forkmind/" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ForkMind" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ForkMind 🧠 — Local-first LLM branching & debugging" />
+    <meta
+      name="twitter:description"
+      content="Treat AI context windows like a Git repo. Capture, branch, and regression-test LLM calls as a DAG — free, local, zero config."
+    />
+    <meta name="twitter:image" content="https://medhovarsh.github.io/forkmind/forkmind-dashboard.png" />
+
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+
+    <!-- Structured data for search + answer engines (AEO) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "ForkMind",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Windows, macOS, Linux",
+        "description": "Local-first LLM state branching and debugging tool. Captures every LLM call into a local .forkmind directory, visualizes the conversation as a Directed Acyclic Graph (DAG), and lets you branch alternative prompts or model params from any point in the history. Works with any OpenAI-compatible API, defaults to free open-source models via Ollama, and exposes an MCP server so agents can query their own history.",
+        "url": "https://medhovarsh.github.io/forkmind/",
+        "downloadUrl": "https://github.com/medhovarsh/forkmind",
+        "softwareVersion": "0.1.0",
+        "license": "https://github.com/medhovarsh/forkmind/blob/master/LICENSE",
+        "author": {
+          "@type": "Person",
+          "name": "Medhovarsh Bayyapureddi",
+          "url": "https://github.com/Medhovarsh"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "keywords": "LLM debugging, LLM observability, prompt engineering, Ollama, OpenAI proxy, MCP, AI agents, local-first, conversation DAG, regression testing"
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is ForkMind?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "ForkMind is a local-first tool that treats AI context windows like a Git repository. It captures every LLM call into a local .forkmind directory, visualizes the conversation as a Directed Acyclic Graph (DAG), and lets you branch alternative prompts or models from any historical turn — all on your machine, with no cloud and no account."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is ForkMind free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. ForkMind is MIT-licensed and runs entirely on your machine. It defaults to free, open-source models via Ollama, so you need no API key, no database, and no telemetry to get started."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Which LLM providers does ForkMind support?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "ForkMind is a provider-agnostic proxy. It works with any OpenAI-compatible API, including Ollama, OpenAI, Anthropic, Groq, OpenRouter, Together, LM Studio, and vLLM."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I install ForkMind?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "ForkMind runs straight from its git link with no npm registry needed. Run 'npx github:medhovarsh/forkmind start' to launch the proxy and dashboard on port 4500, then point your OpenAI client at http://localhost:4500/v1."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How can AI agents use ForkMind?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "ForkMind exposes an MCP (Model Context Protocol) server. An agent can query its own history mid-task to recall previous attempts, trace lineage, and self-correct."
+            }
+          }
+        ]
+      }
+    </script>
     <style>
       :root {
         --bg: #0d1117;
@@ -177,6 +273,32 @@ npx github:medhovarsh/forkmind start
 #    baseURL: http://localhost:4500/v1
 #    open http://localhost:4500 for the dashboard</code></pre>
         <p class="caption"><a href="https://github.com/Medhovarsh/forkmind#readme">Full documentation on GitHub →</a></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>FAQ</h2>
+        <div class="card" style="margin-bottom:14px">
+          <h3>What is ForkMind?</h3>
+          <p>ForkMind is a local-first tool that treats AI context windows like a Git repository. It captures every LLM call into a local <code>.forkmind</code> directory, visualizes the conversation as a Directed Acyclic Graph (DAG), and lets you branch alternative prompts or models from any historical turn — all on your machine, no cloud, no account.</p>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <h3>Is ForkMind free?</h3>
+          <p>Yes. ForkMind is MIT-licensed and runs entirely on your machine. It defaults to free, open-source models via Ollama — no API key, no database, no telemetry.</p>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <h3>Which LLM providers does ForkMind support?</h3>
+          <p>ForkMind is a provider-agnostic proxy. It works with any OpenAI-compatible API, including Ollama, OpenAI, Anthropic, Groq, OpenRouter, Together, LM Studio, and vLLM.</p>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <h3>How do I install ForkMind?</h3>
+          <p>ForkMind runs straight from its git link — no npm registry needed. Run <code>npx github:medhovarsh/forkmind start</code> to launch the proxy and dashboard on port 4500, then point your OpenAI client at <code>http://localhost:4500/v1</code>.</p>
+        </div>
+        <div class="card">
+          <h3>How can AI agents use ForkMind?</h3>
+          <p>ForkMind exposes an MCP (Model Context Protocol) server. An agent can query its own history mid-task to recall previous attempts, trace lineage, and self-correct.</p>
+        </div>
       </div>
     </section>
 
