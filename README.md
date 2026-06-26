@@ -75,10 +75,18 @@ when and how to drive it — same install flow as any marketplace plugin:
 /plugin install forkmind
 ```
 
-Claude will then reach for ForkMind whenever you ask it to debug a prompt, compare
-models, branch from a past turn, or regression-test an LLM call. The CLI above is
-still what actually runs the proxy + dashboard; the plugin is the glue that teaches
-Claude to use it.
+The plugin bundles:
+
+- **`forkmind` skill** — Claude reaches for ForkMind whenever you ask it to debug
+  a prompt, compare models, branch from a past turn, or regression-test a call.
+- **`/forkmind` command** — start / branch / test / mcp on demand.
+- **`forkmind-debugger` agent** — runs model/prompt comparisons in an isolated
+  context and returns a compact verdict instead of dumping transcripts.
+- **MCP server, auto-wired** — agents query their own `.forkmind/` history
+  (recall attempts, trace lineage, self-correct) with zero manual config.
+
+The CLI is still what runs the proxy + dashboard; the plugin is the glue that
+teaches Claude to use it.
 
 ## Quick start (free, no API key)
 

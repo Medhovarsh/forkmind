@@ -17,5 +17,11 @@
     "ollama",
     "mcp",
     "local-first"
-  ]
+  ],
+  "mcpServers": {
+    "forkmind": {
+      "command": "npx",
+      "args": ["-y", "github:medhovarsh/forkmind", "mcp"]
+    }
+  }
 }

@@ -57,23 +57,29 @@ by passing that provider's base URL + key through the proxy.
 - **Regression test** — pin a known-good output as a baseline; re-run after a
   prompt tweak; ForkMind flags drift (wire into CI).
 
-## MCP for agents (optional)
+## MCP for agents
 
-ForkMind ships an MCP server so an agent can query its own history mid-task.
-Add it to an MCP client config:
+Installed as the Claude Code plugin, ForkMind's MCP server is wired up
+automatically (`forkmind` server, launched via `npx … forkmind mcp`). An agent
+can query its own history mid-task — recall previous attempts, trace lineage,
+self-correct. No manual config needed.
+
+Outside the plugin, add it to any MCP client by hand:
 
 ```json
 {
   "mcpServers": {
-    "forkmind": {
-      "command": "npx",
-      "args": ["-y", "github:medhovarsh/forkmind", "mcp"]
-    }
+    "forkmind": { "command": "npx", "args": ["-y", "github:medhovarsh/forkmind", "mcp"] }
   }
 }
 ```
 
-The agent can then recall previous attempts, trace lineage, and self-correct.
+## Delegating heavy compares
+
+For "compare model X vs Y" or "why did the answer change" tasks that would dump
+big transcripts into context, spawn the **`forkmind-debugger`** subagent. It runs
+the comparison in isolation and returns a compact verdict (winner, diff, drift),
+not raw logs.
 
 ## Notes
 
