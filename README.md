@@ -65,6 +65,21 @@ cd forkmind && npm install
 
 Once published to npm, `npx forkmind ...` / `npm i -g forkmind` work too.
 
+### Install as a Claude Code plugin
+
+ForkMind ships a Claude Code plugin (skill + `/forkmind` command) so Claude knows
+when and how to drive it — same install flow as any marketplace plugin:
+
+```text
+/plugin marketplace add Medhovarsh/forkmind
+/plugin install forkmind
+```
+
+Claude will then reach for ForkMind whenever you ask it to debug a prompt, compare
+models, branch from a past turn, or regression-test an LLM call. The CLI above is
+still what actually runs the proxy + dashboard; the plugin is the glue that teaches
+Claude to use it.
+
 ## Quick start (free, no API key)
 
 ```bash
