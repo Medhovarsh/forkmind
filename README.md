@@ -47,24 +47,28 @@ Everything is plain JSON on disk. No database. No telemetry.
 
 ## Install
 
-ForkMind runs straight from a git link — no npm registry needed (the dashboard
-is built automatically on install):
+```bash
+# Run without installing (once published to npm)
+npx forkmind init
+npx forkmind start
+
+# …or install the CLI globally
+npm install -g forkmind
+forkmind start
+```
+
+No npm registry needed either — ForkMind runs straight from the git link, and
+the dashboard builds automatically on install:
 
 ```bash
-# Run without installing
+# Run without installing, from GitHub
 npx github:medhovarsh/forkmind init
 npx github:medhovarsh/forkmind start
-
-# …or install the CLI globally from GitHub
-npm install -g github:medhovarsh/forkmind
-forkmind start
 
 # …or clone to hack on it
 git clone https://github.com/medhovarsh/forkmind
 cd forkmind && npm install
 ```
-
-Once published to npm, `npx forkmind ...` / `npm i -g forkmind` work too.
 
 ### Install as a Claude Code plugin
 
@@ -132,6 +136,90 @@ Run the full example:
 ```bash
 node examples/chain.js
 ```
+
+### Any language — point your client at the proxy
+
+The SDK wrapper is convenience, not a requirement. ForkMind's proxy speaks the
+**OpenAI-compatible wire protocol**, so capture works from *any* language: set
+your client's base URL to `http://localhost:4500/v1` and you're recorded. Chain
+turns into a tree by passing back the `x-forkmind-node-id` from the previous
+response as the next request's `x-forkmind-parent` header (the JS wrapper just
+automates this).
+
+```python
+# Python — official openai client, zero ForkMind code
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:4500/v1", api_key="ollama")
+res = client.chat.completions.create(
+    model="llama3",
+    messages=[{"role": "user", "content": "Explain backpropagation simply."}],
+    extra_headers={"x-forkmind-upstream": "http://localhost:11434"},
+)
+# read res via .with_raw_response to grab x-forkmind-node-id and chain the next call
+```
+
+```bash
+# curl — anything that can POST JSON
+curl http://localhost:4500/v1/chat/completions \
+  -H 'content-type: application/json' \
+  -H 'x-forkmind-upstream: http://localhost:11434' \
+  -d '{"model":"llama3","messages":[{"role":"user","content":"hi"}]}' -i
+# response header `x-forkmind-node-id: <id>` → pass as `x-forkmind-parent` next call
+```
+
+Go, Ruby, Rust, Java — same deal: base URL + the two headers. The dashboard,
+branching, MCP, and regression testing all work regardless of source language.
+
+---
+
+## Framework integrations
+
+ForkMind ships thin adapters for the two biggest JS LLM ecosystems. Both route
+through the same proxy, so capture, branching, the dashboard, MCP, and
+regression all work unchanged — no model-class swap, no callbacks.
+
+### LangChain.js
+
+```bash
+npm i @langchain/openai @langchain/core
+```
+
+```js
+const { ChatOpenAI } = require('@langchain/openai');
+const { forkmind } = require('forkmind/langchain');
+
+const fm = forkmind({ upstream: 'http://localhost:11434' }); // free local Ollama
+const model = new ChatOpenAI({
+  apiKey: 'ollama',
+  model: 'llama3',
+  configuration: fm.configuration, // baseURL → proxy + chaining fetch
+});
+
+await model.invoke('Explain backpropagation simply.');
+// sequential calls on `fm` auto-chain; fm.setParent(id) to branch from a node.
+```
+
+### Vercel AI SDK
+
+```bash
+npm i ai @ai-sdk/openai
+```
+
+```js
+const { generateText } = require('ai');
+const { forkmindOpenAI } = require('forkmind/vercel');
+
+const openai = forkmindOpenAI({ upstream: 'http://localhost:11434' });
+const { text } = await generateText({
+  model: openai('llama3'),
+  prompt: 'Explain backpropagation simply.',
+});
+// openai.setParent(id) / openai.resetParent() control the branch point.
+```
+
+Both honor `FORKMIND_PROXY` (proxy base URL) and take an explicit `baseURL` /
+`upstream` per instance.
 
 ---
 
@@ -213,7 +301,16 @@ already tried, see how it reached a state, or search past attempts.
 forkmind mcp          # stdio MCP server (or: forkmind-mcp)
 ```
 
-Register it with any MCP client (Claude Desktop / Claude Code / Cursor):
+One-line install via [Smithery](https://smithery.ai) (configured in
+[`smithery.yaml`](./smithery.yaml)) — run it from your project root so it sees
+your `.forkmind/`:
+
+```bash
+npx -y @smithery/cli install forkmind --client claude
+```
+
+…or register it manually with any MCP client (Claude Desktop / Claude Code /
+Cursor / Cline):
 
 ```jsonc
 {
@@ -330,6 +427,18 @@ npm run dashboard:dev  # vite dev server on :5173, proxies API to :4500
 npm run dashboard:build
 npm run lint
 ```
+
+### Releasing to npm
+
+Publishing is tag-driven via `.github/workflows/release.yml` (needs an
+`NPM_TOKEN` repo secret with publish rights):
+
+```bash
+npm version patch        # bumps package.json + tags
+git push --follow-tags   # tag push → CI lints, tests, builds dashboard, publishes
+```
+
+`prepack` rebuilds `dashboard/dist` so the tarball always ships the UI.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
