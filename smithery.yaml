@@ -1,0 +1,24 @@
+# Smithery configuration — https://smithery.ai/docs/build/project-config
+#
+# Registers the ForkMind MCP server so MCP clients (Claude Desktop, Claude Code,
+# Cursor, Cline, …) can discover and one-line-install it from smithery.ai.
+#
+# Transport is stdio: Smithery launches the server locally via npx. The server
+# reads the `.forkmind/` history in its working directory, so run your MCP
+# client from your project root (where you ran `forkmind init`).
+
+startCommand:
+  type: stdio
+  # No secrets or required settings — ForkMind is local-first and keyless.
+  configSchema:
+    type: object
+    properties: {}
+    additionalProperties: false
+  # Returns the command Smithery runs to start the stdio server.
+  # `npx -y forkmind mcp` matches the plugin's mcpServers config; before the npm
+  # release, swap to: command 'npx', args ['-y','github:medhovarsh/forkmind','mcp'].
+  commandFunction: |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', 'forkmind', 'mcp']
+    })

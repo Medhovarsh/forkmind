@@ -6,7 +6,7 @@ try {
   OpenAI = null;
 }
 
-const PROXY_BASE = process.env.FORKMIND_PROXY || 'http://localhost:4500/v1';
+const { createTracking, PROXY_BASE } = require('../integrations/tracking');
 
 /**
  * Drop-in replacement for the OpenAI client that records every call into the
@@ -39,41 +39,25 @@ function createForkMindOpenAI() {
       const { upstream, ...rest } = opts;
       super({ ...rest, baseURL: rest.baseURL || PROXY_BASE });
 
-      this._parentId = null; // last node id; null => next call is a root
-      this._upstream = upstream || null;
-
-      // Override fetch so we can stamp/read ForkMind headers transparently.
-      // OpenAI SDK v4 accepts a custom fetch. Requires Node 18+ global fetch.
-      this.fetch = this._trackingFetch.bind(this);
-    }
-
-    async _trackingFetch(url, init = {}) {
-      const headers = new Headers(init.headers || {});
-      if (this._parentId) headers.set('x-forkmind-parent', this._parentId);
-      if (this._upstream) headers.set('x-forkmind-upstream', this._upstream);
-
-      const response = await fetch(url, { ...init, headers });
-
-      // Header is readable immediately, before the (possibly streamed) body.
-      const newId = response.headers.get('x-forkmind-node-id');
-      if (newId) this._parentId = newId;
-
-      return response;
+      // Shared parent-chaining fetch (same primitive the LangChain / Vercel
+      // adapters use). OpenAI SDK v4 accepts a custom fetch. Requires Node 18+.
+      this._tracker = createTracking({ upstream });
+      this.fetch = this._tracker.fetch;
     }
 
     /** Pin the branch point (e.g. forking from a historical node). */
     setParent(nodeId) {
-      this._parentId = nodeId;
+      this._tracker.setParent(nodeId);
     }
 
     /** Reset chaining — next call starts a fresh root. */
     resetParent() {
-      this._parentId = null;
+      this._tracker.resetParent();
     }
 
     /** Current parent node id (the head of this conversation branch). */
     get parentId() {
-      return this._parentId;
+      return this._tracker.parentId;
     }
   };
 }
