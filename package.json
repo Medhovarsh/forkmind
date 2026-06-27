@@ -64,10 +64,10 @@
   "homepage": "https://medhovarsh.github.io/forkmind/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/medhovarsh/forkmind"
+    "url": "git+https://github.com/Medhovarsh/forkmind.git"
   },
   "bugs": {
-    "url": "https://github.com/medhovarsh/forkmind/issues"
+    "url": "https://github.com/Medhovarsh/forkmind/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
