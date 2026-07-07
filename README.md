@@ -1,5 +1,6 @@
 # ForkMind 🧠
 
+[![npm](https://img.shields.io/npm/v/forkmind.svg)](https://www.npmjs.com/package/forkmind)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![CI](https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml/badge.svg)](https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-43853d.svg)](https://nodejs.org)
@@ -48,7 +49,7 @@ Everything is plain JSON on disk. No database. No telemetry.
 ## Install
 
 ```bash
-# Run without installing (once published to npm)
+# Run without installing (published on npm)
 npx forkmind init
 npx forkmind start
 

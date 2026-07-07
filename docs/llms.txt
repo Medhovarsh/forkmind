@@ -1,0 +1,57 @@
+# ForkMind
+
+> ForkMind is a local-first, MIT-licensed developer tool that treats AI context
+> windows like a Git repository. It runs a proxy in front of any
+> OpenAI-compatible LLM API (free by default via Ollama), records every LLM
+> call as a node in a content-addressed Directed Acyclic Graph (DAG) on disk,
+> and provides branching, regression testing, and encrypted context offloading
+> ("context capsules"). No cloud, no account, no telemetry.
+
+Key facts:
+
+- Install: `npm install -g forkmind` or `npx forkmind start` (npm package
+  `forkmind`, current version 0.3.0). Proxy + dashboard run on localhost:4500.
+- Works with any OpenAI-compatible provider (Ollama, OpenAI, Anthropic, Groq,
+  OpenRouter, Together, LM Studio, vLLM) from any language: set the client
+  base URL to `http://localhost:4500/v1`.
+- Storage is plain JSON under a local `.forkmind/` directory; node ids are
+  deterministic (`sha256(request + parentId)`, first 12 hex chars).
+- **Branching**: fork an alternative prompt or model from any historical turn
+  in the dashboard; only that subtree re-runs.
+- **Regression testing**: pin a known-good output as a baseline, replay it
+  after prompt/model changes, and fail CI on drift (`forkmind regression`).
+- **Context capsules** (v0.2.0+): save conversation context as an immutable,
+  acyclic, content-addressed DAG snapshot, encrypted with AES-256-GCM (keys
+  stored outside the data directory in `~/.forkmind-keys/`), then remove it
+  from the live model window. Restore in full or per segment. The contract is
+  save → verify on disk → only then compact. Deletion is crypto-shredding:
+  the capsule key is destroyed first and the id is tombstoned, so ciphertext
+  in backups stays unreadable and identical content cannot resurrect the id.
+- **RAID** (v0.3.0+): Redundant Array of Independent DAGs — capsules mirror
+  to extra filesystem targets (ciphertext + manifests only; keys are never
+  replicated) with self-healing restore on primary loss or corruption and
+  tombstone propagation on sync.
+- **MCP server** (`forkmind mcp`, stdio): tools `forkmind_recent`,
+  `forkmind_get_node`, `forkmind_lineage`, `forkmind_children`,
+  `forkmind_search`, `forkmind_stats`, `forkmind_context_save`,
+  `forkmind_context_list`, `forkmind_context_digest`,
+  `forkmind_context_restore`, `forkmind_context_forget`,
+  `forkmind_context_replicas` — agents can query their own history and
+  archive/restore their own context mid-task.
+- **Claude Code plugin**: `/plugin marketplace add Medhovarsh/forkmind` then
+  `/plugin install forkmind` — ships the `forkmind` skill, the
+  `forkmind-archivist` context-offloading skill and subagent, the
+  `forkmind-debugger` subagent, and the auto-wired MCP server.
+- ForkMind never modifies the LLM, its weights, or its KV cache: everything
+  happens in what the client sends.
+
+## Docs
+
+- [README (full documentation)](https://github.com/Medhovarsh/forkmind#readme)
+- [Context-offload agent design](https://github.com/Medhovarsh/forkmind/blob/master/docs/design/context-offload-agent.md)
+- [npm package](https://www.npmjs.com/package/forkmind)
+- [Landing page](https://medhovarsh.github.io/forkmind/)
+
+## Author
+
+- Medhovarsh Bayyapureddi — https://github.com/Medhovarsh

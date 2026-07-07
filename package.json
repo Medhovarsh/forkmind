@@ -57,7 +57,12 @@
     "model-context-protocol",
     "llm-debugging",
     "regression-testing",
-    "context-window"
+    "context-window",
+    "context-management",
+    "context-offloading",
+    "context-capsules",
+    "encrypted-storage",
+    "agent-memory"
   ],
   "author": "Medhovarsh Bayyapureddi",
   "license": "MIT",

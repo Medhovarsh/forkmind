@@ -3,24 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ForkMind 🧠 — Local-first LLM branching & debugging</title>
+    <title>ForkMind 🧠 — Local-first LLM branching, debugging & context capsules</title>
     <meta
       name="description"
-      content="ForkMind captures, visualizes, branches, and regression-tests LLM calls as a DAG. Free & local via Ollama, any OpenAI-compatible API, plus MCP for agents. Zero config, no cloud, no account."
+      content="ForkMind captures, visualizes, branches, and regression-tests LLM calls as a DAG — and offloads conversation context into encrypted, restorable capsules instead of truncating it. Free & local via Ollama, any OpenAI-compatible API, plus MCP for agents. Zero config, no cloud, no account."
     />
     <meta name="author" content="Medhovarsh Bayyapureddi" />
     <meta
       name="keywords"
-      content="LLM debugging, LLM observability, prompt engineering tool, Ollama, OpenAI proxy, MCP, model context protocol, AI agent debugging, local-first, conversation DAG, regression testing LLM"
+      content="LLM debugging, LLM observability, LLM context management, context window offloading, context capsules, prompt engineering tool, Ollama, OpenAI proxy, MCP, model context protocol, AI agent debugging, AI agent memory, local-first, conversation DAG, regression testing LLM, encrypted context storage"
     />
     <meta name="theme-color" content="#0d1117" />
     <link rel="canonical" href="https://medhovarsh.github.io/forkmind/" />
 
     <!-- Open Graph -->
-    <meta property="og:title" content="ForkMind 🧠 — Local-first LLM branching & debugging" />
+    <meta property="og:title" content="ForkMind 🧠 — Local-first LLM branching, debugging & context capsules" />
     <meta
       property="og:description"
-      content="Local-first LLM state branching & debugging. Treat AI context windows like a Git repo. Free & local via Ollama, any OpenAI-compatible API, and MCP for agents."
+      content="Treat AI context windows like a Git repo: capture, branch, and regression-test LLM calls as a DAG — and offload context into encrypted, restorable capsules instead of truncating it. Free & local via Ollama, any OpenAI-compatible API, and MCP for agents."
     />
     <meta property="og:image" content="https://medhovarsh.github.io/forkmind/forkmind-dashboard.png" />
     <meta property="og:url" content="https://medhovarsh.github.io/forkmind/" />
@@ -29,10 +29,10 @@
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ForkMind 🧠 — Local-first LLM branching & debugging" />
+    <meta name="twitter:title" content="ForkMind 🧠 — Local-first LLM branching, debugging & context capsules" />
     <meta
       name="twitter:description"
-      content="Treat AI context windows like a Git repo. Capture, branch, and regression-test LLM calls as a DAG — free, local, zero config."
+      content="Treat AI context windows like a Git repo. Capture, branch, regression-test LLM calls as a DAG — and offload context into encrypted, restorable capsules. Free, local, zero config."
     />
     <meta name="twitter:image" content="https://medhovarsh.github.io/forkmind/forkmind-dashboard.png" />
 
@@ -46,10 +46,11 @@
         "name": "ForkMind",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Windows, macOS, Linux",
-        "description": "Local-first LLM state branching and debugging tool. Captures every LLM call into a local .forkmind directory, visualizes the conversation as a Directed Acyclic Graph (DAG), and lets you branch alternative prompts or model params from any point in the history. Works with any OpenAI-compatible API, defaults to free open-source models via Ollama, and exposes an MCP server so agents can query their own history.",
+        "description": "Local-first LLM state branching, debugging, and context-offloading tool. Captures every LLM call into a local .forkmind directory, visualizes the conversation as a Directed Acyclic Graph (DAG), and lets you branch alternative prompts or model params from any point in the history. Context capsules save conversation context as immutable, AES-256-GCM-encrypted DAG snapshots that can be removed from the model window and restored later — in full or per segment — with crypto-shredding deletion and RAID-style replication across filesystem targets. Works with any OpenAI-compatible API, defaults to free open-source models via Ollama, and exposes an MCP server so agents can query their own history and archive their own context.",
         "url": "https://medhovarsh.github.io/forkmind/",
-        "downloadUrl": "https://github.com/medhovarsh/forkmind",
-        "softwareVersion": "0.1.0",
+        "downloadUrl": "https://www.npmjs.com/package/forkmind",
+        "installUrl": "https://www.npmjs.com/package/forkmind",
+        "softwareVersion": "0.3.0",
         "license": "https://github.com/medhovarsh/forkmind/blob/master/LICENSE",
         "author": {
           "@type": "Person",
@@ -61,7 +62,7 @@
           "price": "0",
           "priceCurrency": "USD"
         },
-        "keywords": "LLM debugging, LLM observability, prompt engineering, Ollama, OpenAI proxy, MCP, AI agents, local-first, conversation DAG, regression testing"
+        "keywords": "LLM debugging, LLM observability, LLM context management, context window offloading, context capsules, prompt engineering, Ollama, OpenAI proxy, MCP, AI agents, AI agent memory, local-first, conversation DAG, regression testing, encrypted context storage"
       }
     </script>
     <script type="application/ld+json">
@@ -106,7 +107,39 @@
             "name": "How can AI agents use ForkMind?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "ForkMind exposes an MCP (Model Context Protocol) server. An agent can query its own history mid-task to recall previous attempts, trace lineage, and self-correct."
+              "text": "ForkMind exposes an MCP (Model Context Protocol) server with tools for querying conversation history (recent turns, lineage, branches, search) and for context capsules (save, digest, restore, forget, replica health). An agent can recall previous attempts mid-task, self-correct, archive finished context to shrink its window, and restore it later."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What are ForkMind context capsules?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Context capsules let you save conversation context as an immutable, encrypted DAG snapshot on disk and then remove it from the live model window, instead of truncating and losing it. Segments are content-addressed (hashed over content plus parents, like Git), which makes capsules immutable and acyclic by construction. Content is encrypted with AES-256-GCM; keys are stored outside the data directory. Capsules can be restored in full or one segment at a time, and the workflow is save, verify on disk, then compact — nothing is dropped until it is provably persisted."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does ForkMind delete context securely?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Forgetting a capsule uses crypto-shredding: the capsule's encryption key is destroyed first, then the id is tombstoned so identical content can never resurrect it, then the ciphertext is removed everywhere including replicas. Because the key dies first, ciphertext surviving in backups or filesystem snapshots stays unreadable."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is RAID in ForkMind?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "RAID stands for Redundant Array of Independent DAGs. ForkMind can mirror context capsules to extra filesystem targets such as a second disk, a synced folder, or a network mount. Replicas hold ciphertext and manifests only — encryption keys are never replicated. If the primary copy is lost or corrupted, restore self-heals from the first replica that passes verification, and tombstone propagation on sync removes forgotten capsules from replicas that were offline."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does ForkMind modify the LLM or its cache?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. ForkMind operates entirely at the context-assembly layer — it changes what the client sends, never the provider, model weights, or KV cache. Offloading context simply means the provider receives a shorter message list plus a one-line capsule handle."
             }
           }
         ]
@@ -212,13 +245,15 @@
     <header class="hero">
       <div class="wrap">
         <h1>ForkMind 🧠</h1>
-        <p class="tag">Local-first LLM state branching &amp; debugging.</p>
+        <p class="tag">Local-first LLM state branching, debugging &amp; context capsules.</p>
         <p class="sub">
           Treat AI context windows like a Git repo. Capture, visualize, branch, and
-          regression-test LLM calls as a DAG — free &amp; local via Ollama, any
+          regression-test LLM calls as a DAG — and offload context into encrypted,
+          restorable capsules instead of truncating it. Free &amp; local via Ollama, any
           OpenAI-compatible API, and MCP for agents. Zero config, no cloud, no account.
         </p>
         <div class="badges">
+          <a href="https://www.npmjs.com/package/forkmind"><img alt="npm" src="https://img.shields.io/npm/v/forkmind.svg" /></a>
           <a href="https://github.com/Medhovarsh/forkmind/blob/master/LICENSE"><img alt="MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a>
           <a href="https://github.com/Medhovarsh/forkmind/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml/badge.svg" /></a>
           <img alt="Node >=18" src="https://img.shields.io/badge/node-%E2%89%A518-43853d.svg" />
@@ -230,8 +265,9 @@
           <a class="btn" href="https://github.com/Medhovarsh/forkmind#readme">Read the docs</a>
         </div>
         <div class="install">
-          <span class="d"># run straight from the git link — no registry needed</span><br />
-          <span class="c">npx</span> github:medhovarsh/forkmind init<br />
+          <span class="d"># from npm</span><br />
+          <span class="c">npx</span> forkmind start<br />
+          <span class="d"># …or straight from the git link</span><br />
           <span class="c">npx</span> github:medhovarsh/forkmind start
         </div>
       </div>
@@ -257,6 +293,8 @@
           <div class="card"><div class="ico">📡</div><h3>Streaming</h3><p>Bytes pass through untouched; the proxy reconstructs the full message — text and tool calls.</p></div>
           <div class="card"><div class="ico">🤖</div><h3>MCP for agents</h3><p>An agent can query its own history mid-task — recall attempts, trace lineage, self-correct.</p></div>
           <div class="card"><div class="ico">✅</div><h3>Regression tests</h3><p>Pin good outputs as baselines, re-run after prompt tweaks, catch drift in CI.</p></div>
+          <div class="card"><div class="ico">💊</div><h3>Context capsules</h3><p>Offload context as an immutable, AES-256-GCM-encrypted DAG. Save → verify → compact; restore full or per segment; crypto-shred to forget.</p></div>
+          <div class="card"><div class="ico">🛡️</div><h3>RAID redundancy</h3><p>Redundant Array of Independent DAGs: mirror capsules across disks with self-healing restore. Keys never replicated.</p></div>
         </div>
       </div>
     </section>
@@ -296,9 +334,25 @@ npx github:medhovarsh/forkmind start
           <h3>How do I install ForkMind?</h3>
           <p>ForkMind runs straight from its git link — no npm registry needed. Run <code>npx github:medhovarsh/forkmind start</code> to launch the proxy and dashboard on port 4500, then point your OpenAI client at <code>http://localhost:4500/v1</code>.</p>
         </div>
-        <div class="card">
+        <div class="card" style="margin-bottom:14px">
           <h3>How can AI agents use ForkMind?</h3>
-          <p>ForkMind exposes an MCP (Model Context Protocol) server. An agent can query its own history mid-task to recall previous attempts, trace lineage, and self-correct.</p>
+          <p>ForkMind exposes an MCP (Model Context Protocol) server with tools for history (recent turns, lineage, branches, search) and context capsules (save, digest, restore, forget, replica health). An agent can recall previous attempts mid-task, self-correct, archive finished context to shrink its window, and restore it later.</p>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <h3>What are ForkMind context capsules?</h3>
+          <p>Capsules save conversation context as an immutable, encrypted DAG snapshot on disk so it can be removed from the live model window instead of truncated and lost. Segments are content-addressed (hashed over content + parents, like Git) — immutable and acyclic by construction. AES-256-GCM encryption with keys stored outside the data directory. Restore in full or one segment at a time. The workflow is <em>save → verify on disk → compact</em>: nothing is dropped until it is provably persisted.</p>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <h3>How does ForkMind delete context securely?</h3>
+          <p>Crypto-shredding: forgetting a capsule destroys its encryption key first, tombstones the id so identical content can never resurrect it, then removes ciphertext everywhere — including replicas. Backups of the ciphertext stay unreadable because the key is gone.</p>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <h3>What is RAID in ForkMind?</h3>
+          <p>Redundant Array of Independent DAGs. Mirror capsules to extra filesystem targets (second disk, synced folder, network mount). Replicas hold ciphertext + manifests only — keys are never replicated. On primary loss or bit-rot, restore self-heals from the first replica that passes verification; tombstones propagate on sync.</p>
+        </div>
+        <div class="card">
+          <h3>Does ForkMind modify the LLM or its cache?</h3>
+          <p>No. ForkMind operates entirely at the context-assembly layer — it changes what the client sends, never the provider, model weights, or KV cache. Offloading just means the provider receives a shorter message list plus a one-line capsule handle.</p>
         </div>
       </div>
     </section>
