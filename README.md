@@ -340,6 +340,9 @@ Tools exposed:
 | `forkmind_context_restore` | Full or per-segment restore, integrity-verified    |
 | `forkmind_context_forget`  | Irreversible crypto-shred (requires id echo)       |
 | `forkmind_context_replicas`| Replica (RAID) health, optional sync               |
+| `forkmind_context_stats`   | Aggregate stats: count, bytes, estimated tokens    |
+| `forkmind_context_export`  | Portable passphrase-encrypted bundle               |
+| `forkmind_context_import`  | Import + re-verify a bundle, re-wrap locally       |
 
 The server reads the `.forkmind/` in its working directory — point the client's
 `cwd` at your project.
@@ -402,6 +405,31 @@ a replica that was offline gets its stale ciphertext removed on the next
 `sync` (tombstone propagation) — and it was unreadable anyway, since the
 capsule key died at forget time. Tombstones also make heal refuse to
 resurrect anything forgotten.
+
+### Portable export/import
+
+Move a capsule to another machine or project — a laptop that doesn't share
+this project's `~/.forkmind-keys/` master key, a teammate, cold storage:
+
+```bash
+forkmind context export 9f3ac21b7e04 --passphrase "correct horse battery staple" --out capsule.json
+# ... move capsule.json anywhere ...
+forkmind context import capsule.json --passphrase "correct horse battery staple"
+```
+
+The bundle carries its own scrypt-derived key material (N=32768, deliberately
+slow to resist offline brute force of a weak passphrase) — it never depends
+on the source machine's master key, and the passphrase is never written into
+the bundle itself. On import, every segment is independently re-verified
+(recomputed id, recomputed hash, resolved parents, acyclic DFS) before
+anything touches disk — the bundle is never trusted blindly, only proven.
+Import is idempotent and honors tombstones, same as a fresh save.
+
+### Token savings
+
+`forkmind context save` and `forkmind context stats` report an estimated
+token count freed from your context window (`~4 bytes/token`, the standard
+rough heuristic) — a concrete number for how much a capsule actually saved.
 
 ## Regression testing — pin good outputs, catch degradation
 
@@ -531,8 +559,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
       restore in full or per segment; crypto-shred to forget
 - [x] RAID — Redundant Array of Independent DAGs: replicate capsules across
       filesystem targets with self-healing restore and tombstone propagation
-- [ ] Capsule export/import — portable encrypted bundles to move context
-      between machines and projects
+- [x] Capsule export/import — portable, passphrase-encrypted bundles to move
+      context between machines and projects, independently re-verified on import
 - [ ] Dashboard capsule panel — capsules as annotations on the turn DAG
 
 ## License

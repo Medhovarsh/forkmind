@@ -280,6 +280,25 @@ function createServer(opts = {}) {
     }
   });
 
+  app.post('/api/context/:id/export', (req, res) => {
+    try {
+      res.json(capsules.exportCapsule(req.params.id, (req.body || {}).passphrase));
+    } catch (err) {
+      capsuleError(res, err);
+    }
+  });
+
+  app.post('/api/context/import', (req, res) => {
+    try {
+      const { bundle, passphrase } = req.body || {};
+      res.status(201).json(capsules.importCapsule(bundle, passphrase));
+    } catch (err) {
+      res
+        .status(400)
+        .json({ error: { code: err.code || 'IMPORT_FAILED', message: err.message } });
+    }
+  });
+
   app.get('/health', (req, res) => res.json({ ok: true, providers: Object.keys(PROVIDERS) }));
 
   // Serve the built dashboard if present (production / `forkmind start`).

@@ -27,6 +27,7 @@ then compact**. Nothing is dropped until it is provably on disk.
 | 4. Probe | `forkmind_context_digest` | Later: check the digest before restoring anything |
 | 5. Restore | `forkmind_context_restore` | Full, or `segmentIds` for just one piece |
 | 6. Forget | `forkmind_context_forget` | Irreversible crypto-shred; explicit user ask + `confirm: <id>` only |
+| 7. Move | `forkmind_context_export` / `_import` | Portable passphrase-encrypted bundle for another machine/project |
 
 Handle line to keep in the window after compacting:
 

@@ -36,8 +36,10 @@ Key facts:
   `forkmind_search`, `forkmind_stats`, `forkmind_context_save`,
   `forkmind_context_list`, `forkmind_context_digest`,
   `forkmind_context_restore`, `forkmind_context_forget`,
-  `forkmind_context_replicas` — agents can query their own history and
-  archive/restore their own context mid-task.
+  `forkmind_context_replicas`, `forkmind_context_stats`,
+  `forkmind_context_export`, `forkmind_context_import` — agents can query
+  their own history, archive/restore their own context mid-task, and move
+  capsules between machines via passphrase-encrypted portable bundles.
 - **Claude Code plugin**: `/plugin marketplace add Medhovarsh/forkmind` then
   `/plugin install forkmind` — ships the `forkmind` skill, the
   `forkmind-archivist` context-offloading skill and subagent, the

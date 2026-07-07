@@ -17,7 +17,7 @@ function collect(value, prev) {
 program
   .name('forkmind')
   .description('Local-first LLM state branching, debugging & context offloading')
-  .version('0.3.3');
+  .version('0.4.0');
 
 // `forkmind init` — scaffold .forkmind/ in the current working directory.
 program
@@ -198,6 +198,46 @@ context
     const v = capsules.verifyCapsule(id);
     console.log(JSON.stringify(v, null, 2));
     process.exit(v.ok ? 0 : 1);
+  });
+
+context
+  .command('stats')
+  .description('Aggregate capsule stats: count, bytes, estimated tokens freed, replica health')
+  .action(() => {
+    console.log(JSON.stringify(capsules.capsuleStats(), null, 2));
+  });
+
+context
+  .command('export <id>')
+  .description('Export a capsule as a portable, passphrase-encrypted bundle (moves between projects/machines)')
+  .requiredOption('-p, --passphrase <text>', 'export passphrase (min 8 chars) — required again on import')
+  .requiredOption('-o, --out <path>', 'output file for the bundle JSON')
+  .action((id, opts) => {
+    try {
+      const bundle = capsules.exportCapsule(id, opts.passphrase);
+      require('fs').writeFileSync(opts.out, JSON.stringify(bundle, null, 2));
+      console.log(`Exported capsule ${id} → ${opts.out}`);
+      console.log('Keep the passphrase separately — it is not stored in the bundle.');
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+context
+  .command('import <path>')
+  .description('Import a capsule bundle produced by "forkmind context export"')
+  .requiredOption('-p, --passphrase <text>', 'the passphrase used at export time')
+  .action((filePath, opts) => {
+    try {
+      const raw = require('fs').readFileSync(filePath, 'utf8');
+      const bundle = JSON.parse(raw.replace(/^\uFEFF/, ''));
+      const out = capsules.importCapsule(bundle, opts.passphrase);
+      console.log(`Imported capsule ${out.id}  (${out.segments} segments, ${out.bytes} bytes, ~${out.tokensEstimated} tokens)`);
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
   });
 
 // `forkmind context replicas ...` — RAID for capsules: mirror ciphertext to

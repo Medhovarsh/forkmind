@@ -66,7 +66,7 @@ async function startMcp() {
   const { StdioServerTransport } = await import('@modelcontextprotocol/sdk/server/stdio.js');
   const { z } = await import('zod');
 
-  const server = new McpServer({ name: 'forkmind', version: '0.3.3' });
+  const server = new McpServer({ name: 'forkmind', version: '0.4.0' });
 
   // --- recent activity ---
   server.registerTool(
@@ -281,6 +281,60 @@ async function startMcp() {
     async ({ id, confirm }) => {
       try {
         return text(capsules.forgetCapsule(id, confirm));
+      } catch (err) {
+        return text({ error: err.message, code: err.code });
+      }
+    }
+  );
+
+  server.registerTool(
+    'forkmind_context_stats',
+    {
+      title: 'Capsule stats',
+      description:
+        'Aggregate stats across all capsules: count, bytes, estimated tokens ' +
+        'freed from the window, how many have a digest, forgotten count, and ' +
+        'replica health.',
+      inputSchema: {},
+    },
+    async () => text(capsules.capsuleStats())
+  );
+
+  server.registerTool(
+    'forkmind_context_export',
+    {
+      title: 'Export a capsule (portable bundle)',
+      description:
+        'Export a capsule as a passphrase-encrypted, self-contained bundle ' +
+        'that can move to another project or machine — it carries its own key ' +
+        "material and does not depend on this project's local master key. " +
+        'The passphrase is never stored in the bundle; the caller must keep it ' +
+        'to import later. Returns the bundle JSON — write it to a file.',
+      inputSchema: { id: z.string(), passphrase: z.string().min(8) },
+    },
+    async ({ id, passphrase }) => {
+      try {
+        return text(capsules.exportCapsule(id, passphrase));
+      } catch (err) {
+        return text({ error: err.message, code: err.code });
+      }
+    }
+  );
+
+  server.registerTool(
+    'forkmind_context_import',
+    {
+      title: 'Import a capsule bundle',
+      description:
+        'Import a bundle produced by forkmind_context_export. Every segment ' +
+        'is independently re-verified (id, hash, parent graph, acyclicity) ' +
+        'before anything is written — the bundle is never trusted blindly. ' +
+        "Re-wraps the capsule under this project's local master key.",
+      inputSchema: { bundle: z.record(z.any()), passphrase: z.string() },
+    },
+    async ({ bundle, passphrase }) => {
+      try {
+        return text(capsules.importCapsule(bundle, passphrase));
       } catch (err) {
         return text({ error: err.message, code: err.code });
       }

@@ -92,6 +92,37 @@ function unwrapDek(masterKey, wrapped) {
   return Buffer.from(decrypt(masterKey, Buffer.from(wrapped, 'hex')), 'hex');
 }
 
+// scrypt params for passphrase-derived export keys. N=2^15 costs ~100-200ms
+// on typical hardware — deliberately slow to resist offline brute force of a
+// weak export passphrase, since an exported bundle may leave the machine
+// (email, USB, a different project's key store) where the local master key
+// no longer protects it.
+const SCRYPT_N = 32768;
+const SCRYPT_R = 8;
+const SCRYPT_P = 1;
+const SALT_BYTES = 16;
+
+/**
+ * Derive a 32-byte key from a passphrase + salt (scrypt). Used only for
+ * capsule export/import — day-to-day capsule crypto never touches a
+ * passphrase, only the local master key.
+ * @returns {{key: Buffer, salt: Buffer}}
+ */
+function deriveExportKey(passphrase, salt = crypto.randomBytes(SALT_BYTES)) {
+  if (!passphrase || typeof passphrase !== 'string' || passphrase.length < 8) {
+    throw new Error('export passphrase must be a string of at least 8 characters');
+  }
+  const key = crypto.scryptSync(passphrase, salt, KEY_BYTES, {
+    N: SCRYPT_N,
+    r: SCRYPT_R,
+    p: SCRYPT_P,
+    // Node's scrypt defaults to a 32MB working-set cap; N*r*p at these
+    // params needs ~32MB itself, so raise the ceiling rather than weaken KDF.
+    maxmem: 64 * 1024 * 1024,
+  });
+  return { key, salt };
+}
+
 module.exports = {
   loadMasterKey,
   projectKeyPath,
@@ -100,4 +131,8 @@ module.exports = {
   newDek,
   wrapDek,
   unwrapDek,
+  deriveExportKey,
+  SCRYPT_N,
+  SCRYPT_R,
+  SCRYPT_P,
 };
