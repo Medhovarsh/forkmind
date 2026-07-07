@@ -1,6 +1,7 @@
 {
   "name": "forkmind",
-  "version": "0.3.0",
+  "version": "0.3.1",
+  "mcpName": "io.github.medhovarsh/forkmind",
   "description": "Local-first LLM state branching, debugging & context offloading. Treat AI context windows like a Git repo — capture, branch, and archive context as encrypted DAG capsules.",
   "main": "src/sdk/index.js",
   "exports": {

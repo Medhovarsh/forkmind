@@ -1,7 +1,7 @@
 # Design: ForkMind Context-Offload Agent (`forkmind-archivist`)
 
 **Status:** Draft v1 · 2026-07-06
-**Author:** Claude (software-architecture pass), for Medhovarsh Bayyapureddi
+**Author:** Medhovarsh Bayyapureddi
 
 ---
 
