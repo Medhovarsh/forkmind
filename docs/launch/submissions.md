@@ -5,10 +5,11 @@ Status tracker + ready-to-paste content for MCP/plugin directories.
 | Directory | Method | Status |
 |---|---|---|
 | Smithery | `smithery.yaml` in repo (auto-indexed) | ✅ configured, uses `npx -y forkmind mcp` |
-| Glama | `glama.json` in repo (auto-indexed from GitHub/npm) | ✅ added |
+| Glama | submitted via glama.ai + `glama.json` in repo | ✅ listed: https://glama.ai/mcp/servers/Medhovarsh/forkmind |
+| Official MCP Registry | `mcp-publisher` (server.json) | ✅ published: io.github.Medhovarsh/forkmind v0.3.3 |
 | awesome-mcp-servers | PR to punkpeye/awesome-mcp-servers | ✅ filed: https://github.com/punkpeye/awesome-mcp-servers/pull/9547 |
 | mcp.so | Issue on chatmcp/mcpso | ✅ filed: https://github.com/chatmcp/mcpso/issues/3053 |
-| PulseMCP | Web form (https://www.pulsemcp.com/submit) | ⬜ manual — paste content below |
+| PulseMCP | auto-ingests the Official MCP Registry (daily pull, weekly processing) | ✅ upstream published — email hello@pulsemcp.com if not listed after a week |
 | npm | published | ✅ `forkmind@0.3.0` |
 | Claude Code marketplace | git-based | ✅ live |
 
