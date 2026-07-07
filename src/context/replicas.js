@@ -122,7 +122,7 @@ function shredEverywhere(id) {
  */
 function syncAll(contextsDir) {
   const ids = fs.existsSync(contextsDir)
-    ? fs.readdirSync(contextsDir).filter((d) => !d.includes('.tmp-'))
+    ? fs.readdirSync(contextsDir).filter((d) => /^[0-9a-f]{12}$/.test(d))
     : [];
   let copied = 0;
   let failed = 0;
@@ -159,7 +159,7 @@ function syncAll(contextsDir) {
  */
 function status(contextsDir) {
   const primaryIds = fs.existsSync(contextsDir)
-    ? fs.readdirSync(contextsDir).filter((d) => !d.includes('.tmp-'))
+    ? fs.readdirSync(contextsDir).filter((d) => /^[0-9a-f]{12}$/.test(d))
     : [];
   return readConfig().targets.map((target) => {
     if (!fs.existsSync(target)) {

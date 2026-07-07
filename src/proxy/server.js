@@ -13,6 +13,10 @@ const { initStorage, saveNode, readAllNodes, readNode } = require('../storage/en
 const capsules = require('../context/engine');
 
 const PORT = process.env.FORKMIND_PORT || 4500;
+// Bind loopback only by default — the proxy relays auth headers and serves the
+// capsule API, so it must not be reachable from the LAN unless the user
+// explicitly opts in (FORKMIND_HOST=0.0.0.0).
+const HOST = process.env.FORKMIND_HOST || '127.0.0.1';
 
 /**
  * Provider registry. Routed by request path.
@@ -195,6 +199,7 @@ function createServer(opts = {}) {
       INTEGRITY_FAIL: 409,
       KEY_UNAVAILABLE: 423,
       CONFIRM_REQUIRED: 400,
+      INVALID_ID: 400,
     };
     res
       .status(codes[err.code] || 500)
@@ -230,12 +235,16 @@ function createServer(opts = {}) {
   });
 
   app.get('/api/context/:id/digest', (req, res) => {
-    const d = capsules.getDigest(req.params.id);
-    if (!d) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'capsule not found' } });
-    if (d.error === 'TOMBSTONED') {
-      return res.status(410).json({ error: { code: 'TOMBSTONED', message: 'capsule was forgotten' } });
+    try {
+      const d = capsules.getDigest(req.params.id);
+      if (!d) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'capsule not found' } });
+      if (d.error === 'TOMBSTONED') {
+        return res.status(410).json({ error: { code: 'TOMBSTONED', message: 'capsule was forgotten' } });
+      }
+      res.json(d);
+    } catch (err) {
+      capsuleError(res, err);
     }
-    res.json(d);
   });
 
   app.get('/api/context/:id/segment/:segId', (req, res) => {
@@ -248,7 +257,11 @@ function createServer(opts = {}) {
   });
 
   app.post('/api/context/:id/verify', (req, res) => {
-    res.json(capsules.verifyCapsule(req.params.id));
+    try {
+      res.json(capsules.verifyCapsule(req.params.id));
+    } catch (err) {
+      capsuleError(res, err);
+    }
   });
 
   app.get('/api/context/:id', (req, res) => {
@@ -288,7 +301,7 @@ function startServer() {
   initStorage();
   const dashboardDist = path.join(__dirname, '..', '..', 'dashboard', 'dist');
   const app = createServer({ dashboardDist });
-  const server = app.listen(PORT, () => {
+  const server = app.listen(PORT, HOST, () => {
     const hasDash = fs.existsSync(dashboardDist);
     console.log(`\n  ForkMind proxy  →  http://localhost:${PORT}`);
     console.log(`  Point your client baseURL at  http://localhost:${PORT}/v1`);
@@ -312,4 +325,4 @@ function startServer() {
   return server;
 }
 
-module.exports = { createServer, startServer, makeHandler, drainSSE, PROVIDERS, PORT };
+module.exports = { createServer, startServer, makeHandler, drainSSE, PROVIDERS, PORT, HOST };

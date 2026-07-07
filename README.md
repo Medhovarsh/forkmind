@@ -485,8 +485,11 @@ Node schema:
 | `forkmind start`   | Start the proxy (`:4500`) + serve the dashboard if built |
 | `forkmind context save/list/show/verify/forget` | Encrypted context capsules (see above) |
 
-Env vars: `FORKMIND_PORT`, `FORKMIND_OPENAI_UPSTREAM`,
-`FORKMIND_ANTHROPIC_UPSTREAM`, `FORKMIND_PROXY` (SDK target base URL).
+Env vars: `FORKMIND_PORT`, `FORKMIND_HOST` (default `127.0.0.1` — loopback
+only; set `0.0.0.0` to expose on the LAN at your own risk),
+`FORKMIND_OPENAI_UPSTREAM`, `FORKMIND_ANTHROPIC_UPSTREAM`, `FORKMIND_PROXY`
+(SDK target base URL), `FORKMIND_KEY_DIR` (capsule master-key location,
+default `~/.forkmind-keys`).
 
 ---
 

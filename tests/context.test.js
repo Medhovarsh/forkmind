@@ -226,4 +226,19 @@ describe('context capsule HTTP API', () => {
   test('unknown capsule → 404', async () => {
     await request(app).get('/api/context/000000000000').expect(404);
   });
+
+  test('path-traversal ids are rejected with 400, filesystem untouched', async () => {
+    // %2E%2E%2F = ../ — Express decodes params, so this reaches the engine as
+    // a traversal attempt. Must die at validation, never at path.join.
+    await request(app).get('/api/context/%2E%2E%2F%2E%2E%2Fetc').expect(400);
+    await request(app).get('/api/context/..%2F..%2Fx/digest').expect(400);
+    await request(app).post('/api/context/..%2Fnodes/verify').expect(400);
+    const del = await request(app)
+      .delete('/api/context/..%2F..%2Fvictim')
+      .send({ confirm: '..%2F..%2Fvictim' });
+    expect([400, 404]).toContain(del.status);
+    // Uppercase / wrong-length ids also rejected.
+    await request(app).get('/api/context/ABCDEF123456').expect(400);
+    await request(app).get('/api/context/abc').expect(400);
+  });
 });
