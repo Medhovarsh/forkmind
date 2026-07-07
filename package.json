@@ -1,7 +1,7 @@
 {
   "name": "forkmind",
-  "version": "0.1.0",
-  "description": "Local-first LLM state branching and debugging tool. Treat AI context windows like a Git repo.",
+  "version": "0.2.0",
+  "description": "Local-first LLM state branching, debugging & context offloading. Treat AI context windows like a Git repo — capture, branch, and archive context as encrypted DAG capsules.",
   "main": "src/sdk/index.js",
   "exports": {
     ".": "./src/sdk/index.js",

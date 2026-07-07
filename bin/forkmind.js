@@ -7,6 +7,7 @@ const { startServer } = require('../src/proxy/server');
 const { startMcp } = require('../src/mcp/server');
 const reg = require('../src/regression/engine');
 const { runAll, printReport } = require('../src/regression/runner');
+const capsules = require('../src/context/engine');
 
 // commander collects repeated --contains/--regex flags into an array.
 function collect(value, prev) {
@@ -15,8 +16,8 @@ function collect(value, prev) {
 
 program
   .name('forkmind')
-  .description('Local-first LLM state branching and debugging tool')
-  .version('0.1.0');
+  .description('Local-first LLM state branching, debugging & context offloading')
+  .version('0.2.0');
 
 // `forkmind init` — scaffold .forkmind/ in the current working directory.
 program
@@ -112,6 +113,105 @@ regression
       only: opts.only,
     });
     process.exit(printReport(report));
+  });
+
+// `forkmind context ...` — save conversation context as an immutable encrypted
+// DAG capsule, then drop it from the live model window; restore on demand.
+const context = program
+  .command('context')
+  .alias('ctx')
+  .description('Offload context into encrypted DAG capsules and restore on demand');
+
+context
+  .command('save')
+  .description('Save a capsule from a JSON file or stdin ({title?, items:[{role,content}]})')
+  .option('-t, --title <title>', 'capsule title')
+  .option('-f, --file <path>', 'read items JSON from a file (default: stdin)')
+  .option('-d, --digest <text>', 'plaintext retrieval digest (omit = private capsule)')
+  .action(async (opts) => {
+    try {
+      const raw = opts.file
+        ? require('fs').readFileSync(opts.file, 'utf8')
+        : await new Promise((resolve, reject) => {
+            let buf = '';
+            process.stdin.on('data', (c) => (buf += c));
+            process.stdin.on('end', () => resolve(buf));
+            process.stdin.on('error', reject);
+          });
+      // Strip a UTF-8 BOM — Windows editors and PowerShell redirects add one.
+      const parsed = JSON.parse(raw.replace(/^\uFEFF/, ''));
+      const items = Array.isArray(parsed) ? parsed : parsed.items;
+      const title = opts.title || parsed.title;
+      const out = capsules.saveCapsule({ title, items, digest: opts.digest || null });
+      console.log(`Saved capsule ${out.id}  (${out.segments} segments, ${out.bytes} bytes)`);
+      if (out.digest) console.log(`Digest: ${out.digest}`);
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+context
+  .command('list')
+  .description('List saved capsules')
+  .option('-q, --query <text>', 'substring filter over title + digest')
+  .action((opts) => {
+    const list = capsules.listCapsules({ q: opts.query });
+    if (!list.length) return console.log('No capsules saved.');
+    for (const c of list) {
+      console.log(
+        `  ${c.id}  ${c.createdAt}  ${c.bytes}B  ${c.title}` +
+          (c.digest ? `\n      ${c.digest.split('\n')[0]}` : '  (private)')
+      );
+    }
+  });
+
+context
+  .command('show <id>')
+  .description('Restore a capsule (decrypted, integrity-verified)')
+  .option('--digest-only', 'print only the digest + structure (no decryption)')
+  .option('--segment <segId>', 'restore a single segment')
+  .action((id, opts) => {
+    try {
+      if (opts.digestOnly) {
+        const d = capsules.getDigest(id);
+        if (!d) throw new Error('capsule not found');
+        return console.log(JSON.stringify(d, null, 2));
+      }
+      if (opts.segment) {
+        const [seg] = capsules.readSegments(id, [opts.segment]);
+        return console.log(seg.content);
+      }
+      const cap = capsules.readCapsule(id);
+      console.log(`# ${cap.title}  [${cap.id}]`);
+      for (const item of cap.items) console.log(`\n[${item.role}]\n${item.content}`);
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+context
+  .command('verify <id>')
+  .description('Check DAG integrity: parents resolve, acyclic, content hashes valid')
+  .action((id) => {
+    const v = capsules.verifyCapsule(id);
+    console.log(JSON.stringify(v, null, 2));
+    process.exit(v.ok ? 0 : 1);
+  });
+
+context
+  .command('forget <id>')
+  .description('IRREVERSIBLY crypto-shred a capsule (requires --confirm <id>)')
+  .requiredOption('--confirm <id>', 'echo the capsule id to confirm')
+  .action((id, opts) => {
+    try {
+      capsules.forgetCapsule(id, opts.confirm);
+      console.log(`Capsule ${id} forgotten (key shredded, id tombstoned).`);
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
   });
 
 program.parse(process.argv);

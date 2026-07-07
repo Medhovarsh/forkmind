@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "forkmind",
-      "description": "Capture, branch, and regression-test LLM calls as a DAG — free & local via Ollama, any OpenAI-compatible API, and MCP for agents.",
+      "description": "Capture, branch, and regression-test LLM calls as a DAG — plus context capsules: offload conversation context into encrypted, immutable DAG snapshots and restore on demand. Free & local via Ollama, any OpenAI-compatible API, and MCP for agents.",
       "source": "./",
       "category": "productivity"
     }

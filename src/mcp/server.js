@@ -23,6 +23,7 @@ const {
   searchNodes,
 } = require('../storage/engine');
 const { userPreview, assistantText, clip } = require('../lib/extract');
+const capsules = require('../context/engine');
 
 // ---- compact serializers (keep agent token cost low) ----
 
@@ -65,7 +66,7 @@ async function startMcp() {
   const { StdioServerTransport } = await import('@modelcontextprotocol/sdk/server/stdio.js');
   const { z } = await import('zod');
 
-  const server = new McpServer({ name: 'forkmind', version: '0.1.0' });
+  const server = new McpServer({ name: 'forkmind', version: '0.2.0' });
 
   // --- recent activity ---
   server.registerTool(
@@ -172,6 +173,117 @@ async function startMcp() {
         leaves: leaves.length,
         providers,
       });
+    }
+  );
+
+  // ---- context capsules: save context as an encrypted DAG, drop it from the
+  // window, restore on demand ----
+
+  server.registerTool(
+    'forkmind_context_save',
+    {
+      title: 'Save a context capsule',
+      description:
+        'Offload conversation context into an immutable, encrypted DAG on disk. ' +
+        'Pass the items to archive plus a short digest YOU write (the retrieval ' +
+        'key you keep in your window; omit for private capsules). After the id ' +
+        'comes back, verify with forkmind_context_digest, THEN drop the material ' +
+        'from your working context — never before.',
+      inputSchema: {
+        title: z.string(),
+        items: z.array(z.object({ role: z.string(), content: z.string() })).min(1),
+        digest: z.string().optional(),
+        sourceNodeIds: z.array(z.string()).optional(),
+      },
+    },
+    async ({ title, items, digest, sourceNodeIds }) => {
+      try {
+        return text(
+          capsules.saveCapsule({ title, items, digest: digest || null, sourceNodeIds })
+        );
+      } catch (err) {
+        return text({ error: err.message });
+      }
+    }
+  );
+
+  server.registerTool(
+    'forkmind_context_list',
+    {
+      title: 'List context capsules',
+      description:
+        'Compact list of saved capsules (title, digest, size, age). Optional ' +
+        'substring filter over title + digest.',
+      inputSchema: { q: z.string().optional() },
+    },
+    async ({ q }) => {
+      const list = capsules.listCapsules({ q }).map((c) => ({
+        id: c.id,
+        title: c.title,
+        digest: c.digest ? clip(c.digest) : null,
+        bytes: c.bytes,
+        createdAt: c.createdAt,
+        segments: c.dag.segments.length,
+      }));
+      return text({ count: list.length, capsules: list });
+    }
+  );
+
+  server.registerTool(
+    'forkmind_context_digest',
+    {
+      title: 'Capsule digest + segment map',
+      description:
+        'Cheap probe: full digest and DAG structure for one capsule, no ' +
+        'decryption of content. Use before restoring to decide whether you ' +
+        'need the whole capsule or one segment. Also serves as the durability ' +
+        'check after a save, before you compact your window.',
+      inputSchema: { id: z.string() },
+    },
+    async ({ id }) => {
+      const d = capsules.getDigest(id);
+      if (!d) return text({ error: `capsule ${id} not found` });
+      return text(d);
+    }
+  );
+
+  server.registerTool(
+    'forkmind_context_restore',
+    {
+      title: 'Restore capsule content',
+      description:
+        'Decrypt and return capsule content (integrity-verified first). Pass ' +
+        'segmentIds for a partial restore — pull back only what you need.',
+      inputSchema: { id: z.string(), segmentIds: z.array(z.string()).optional() },
+    },
+    async ({ id, segmentIds }) => {
+      try {
+        if (segmentIds && segmentIds.length) {
+          return text({ id, items: capsules.readSegments(id, segmentIds) });
+        }
+        return text(capsules.readCapsule(id));
+      } catch (err) {
+        return text({ error: err.message, code: err.code });
+      }
+    }
+  );
+
+  server.registerTool(
+    'forkmind_context_forget',
+    {
+      title: 'Forget a capsule (crypto-shred)',
+      description:
+        'IRREVERSIBLY destroy a capsule: its encryption key is shredded and the ' +
+        'id tombstoned. You must echo the capsule id in `confirm`. Only call ' +
+        'when the user explicitly asks to forget.',
+      inputSchema: { id: z.string(), confirm: z.string() },
+    },
+    async ({ id, confirm }) => {
+      try {
+        return text(capsules.forgetCapsule(id, confirm));
+      } catch (err) {
+        return text({ error: err.message, code: err.code });
+      }
     }
   );
 

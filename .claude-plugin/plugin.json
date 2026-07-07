@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "forkmind",
-  "version": "0.1.0",
-  "description": "Local-first LLM branching & debugging. Treat AI context windows like a Git repo — capture, branch, and regression-test LLM calls as a DAG. Teaches Claude when and how to drive ForkMind.",
+  "version": "0.2.0",
+  "description": "Local-first LLM branching, debugging & context offloading. Treat AI context windows like a Git repo — capture, branch, regression-test LLM calls as a DAG, and archive context as encrypted, restorable capsules. Teaches Claude when and how to drive ForkMind.",
   "author": {
     "name": "Medhovarsh Bayyapureddi",
     "url": "https://github.com/Medhovarsh"

@@ -10,6 +10,7 @@ const {
 const { reconstructOpenAI, reconstructAnthropic } = require('./reconstruct');
 const { generateNodeId } = require('../storage/hash');
 const { initStorage, saveNode, readAllNodes, readNode } = require('../storage/engine');
+const capsules = require('../context/engine');
 
 const PORT = process.env.FORKMIND_PORT || 4500;
 
@@ -182,6 +183,80 @@ function createServer(opts = {}) {
     const node = readNode(req.params.id);
     if (!node) return res.status(404).json({ error: 'node not found' });
     res.json(node);
+  });
+
+  // --- Context capsule API (save context as an encrypted DAG, drop it from
+  // the model window, restore on demand). Errors: { error: { code, message } }.
+
+  const capsuleError = (res, err) => {
+    const codes = {
+      NOT_FOUND: 404,
+      TOMBSTONED: 410,
+      INTEGRITY_FAIL: 409,
+      KEY_UNAVAILABLE: 423,
+      CONFIRM_REQUIRED: 400,
+    };
+    res
+      .status(codes[err.code] || 500)
+      .json({ error: { code: err.code || 'INTERNAL', message: err.message } });
+  };
+
+  app.post('/api/context', (req, res) => {
+    try {
+      const { title, items, digest = null, sourceNodeIds = [] } = req.body || {};
+      res.status(201).json(capsules.saveCapsule({ title, items, digest, sourceNodeIds }));
+    } catch (err) {
+      // Validation failures (bad title/items) surface as 400s.
+      res
+        .status(400)
+        .json({ error: { code: err.code || 'INVALID_INPUT', message: err.message } });
+    }
+  });
+
+  app.get('/api/context', (req, res) => {
+    res.json({ capsules: capsules.listCapsules({ q: req.query.q }) });
+  });
+
+  app.get('/api/context/stats', (req, res) => {
+    res.json(capsules.capsuleStats());
+  });
+
+  app.get('/api/context/:id/digest', (req, res) => {
+    const d = capsules.getDigest(req.params.id);
+    if (!d) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'capsule not found' } });
+    if (d.error === 'TOMBSTONED') {
+      return res.status(410).json({ error: { code: 'TOMBSTONED', message: 'capsule was forgotten' } });
+    }
+    res.json(d);
+  });
+
+  app.get('/api/context/:id/segment/:segId', (req, res) => {
+    try {
+      const [seg] = capsules.readSegments(req.params.id, [req.params.segId]);
+      res.json(seg);
+    } catch (err) {
+      capsuleError(res, err);
+    }
+  });
+
+  app.post('/api/context/:id/verify', (req, res) => {
+    res.json(capsules.verifyCapsule(req.params.id));
+  });
+
+  app.get('/api/context/:id', (req, res) => {
+    try {
+      res.json(capsules.readCapsule(req.params.id));
+    } catch (err) {
+      capsuleError(res, err);
+    }
+  });
+
+  app.delete('/api/context/:id', (req, res) => {
+    try {
+      res.json(capsules.forgetCapsule(req.params.id, (req.body || {}).confirm));
+    } catch (err) {
+      capsuleError(res, err);
+    }
   });
 
   app.get('/health', (req, res) => res.json({ ok: true, providers: Object.keys(PROVIDERS) }));

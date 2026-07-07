@@ -333,9 +333,52 @@ Tools exposed:
 | `forkmind_children` | Sibling branches forking from a node                     |
 | `forkmind_search`   | Substring search across all requests/responses           |
 | `forkmind_stats`    | Tree totals: nodes, roots, leaves, providers             |
+| `forkmind_context_save`    | Offload context into an encrypted DAG capsule      |
+| `forkmind_context_list`    | List saved capsules (title, digest, size, age)     |
+| `forkmind_context_digest`  | Digest + segment map — cheap pre-restore probe     |
+| `forkmind_context_restore` | Full or per-segment restore, integrity-verified    |
+| `forkmind_context_forget`  | Irreversible crypto-shred (requires id echo)       |
 
 The server reads the `.forkmind/` in its working directory — point the client's
 `cwd` at your project.
+
+## Context capsules — offload context as an encrypted DAG
+
+Most context managers treat a full window as a cache-eviction problem: truncate
+and lose it. ForkMind **capsules** invert that — *persist first, verify, then
+compact*. A capsule is an immutable, content-addressed DAG of context segments,
+AES-256-GCM encrypted on disk, restorable in full or one segment at a time.
+
+```bash
+# Save (items JSON from a file or stdin), get back a 12-char handle
+echo '{"title":"auth debug","items":[{"role":"user","content":"..."}]}' \
+  | forkmind context save --digest "oauth loop root-caused; fix in token.js"
+
+forkmind context list                 # all capsules, newest first
+forkmind context show 9f3ac21b7e04    # decrypt + verify + print
+forkmind context verify 9f3ac21b7e04  # DAG integrity: parents, acyclicity, hashes
+forkmind context forget 9f3ac21b7e04 --confirm 9f3ac21b7e04   # crypto-shred
+```
+
+Same engine over HTTP (`POST/GET/DELETE :4500/api/context…`) and via five MCP
+tools, so agents can archive their own context mid-task and pull it back later.
+The Claude Code plugin ships a **`forkmind-archivist`** skill + subagent that
+teaches Claude the offload contract: **save → verify on disk → only then drop
+it from the window**.
+
+Guarantees:
+
+- **Immutable & acyclic by construction** — segment ids are hashes over
+  content + parents (Git-style); a cycle would require a hash to contain itself.
+- **No plaintext at rest** — per-capsule keys, wrapped by a master key stored
+  *outside* `.forkmind/` (`~/.forkmind-keys/`); an accidentally committed
+  `.forkmind/` leaks only ciphertext and structure.
+- **Digests are opt-in** — the agent writes a ≤5-line retrieval summary, or
+  omits it entirely for private capsules.
+- **Forgetting is real** — delete destroys the key first (crypto-shredding),
+  then tombstones the id so identical content can never resurrect it.
+- **The model is never touched** — capsules operate on what the client sends;
+  provider, weights, and KV cache are out of scope by design.
 
 ## Regression testing — pin good outputs, catch degradation
 
@@ -387,6 +430,11 @@ gate prompt changes in CI.
 ├── nodes/
 │   ├── a1b2c3d4e5f6.json     # one node per turn
 │   └── ...
+├── contexts/                 # encrypted context capsules
+│   └── 9f3ac21b7e04/
+│       ├── manifest.json     # public: DAG shape, hashes, opt-in digest
+│       └── seg-<id>.enc      # AES-256-GCM ciphertext per segment
+├── tombstones.json           # forgotten capsule ids (never resurrected)
 └── manifest.json            # version + root node ids
 ```
 
@@ -412,6 +460,7 @@ Node schema:
 | ------------------ | -------------------------------------------------------- |
 | `forkmind init`    | Create `.forkmind/` in the current directory             |
 | `forkmind start`   | Start the proxy (`:4500`) + serve the dashboard if built |
+| `forkmind context save/list/show/verify/forget` | Encrypted context capsules (see above) |
 
 Env vars: `FORKMIND_PORT`, `FORKMIND_OPENAI_UPSTREAM`,
 `FORKMIND_ANTHROPIC_UPSTREAM`, `FORKMIND_PROXY` (SDK target base URL).
@@ -452,6 +501,12 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 - [x] React Flow dashboard + branch execution
 - [x] MCP integration — let agents query their own `.forkmind/` history
 - [x] Automated regression: pin "good" branches, re-run on prompt edits
+- [x] Context capsules — offload context as an encrypted, immutable DAG;
+      restore in full or per segment; crypto-shred to forget
+- [ ] Capsule export/import — portable encrypted bundles to move context
+      between machines and projects
+- [ ] Dashboard capsule panel — capsules as annotations on the turn DAG
+- [ ] Replicated capsule storage (multi-backend redundancy)
 
 ## License
 
