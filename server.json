@@ -1,19 +1,19 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
-  "name": "io.github.medhovarsh/forkmind",
-  "description": "LLM history DAG + encrypted context capsules: agents recall their own past turns and offload context into immutable, restorable, crypto-shreddable snapshots. Local-first.",
+  "name": "io.github.Medhovarsh/forkmind",
+  "description": "Branchable LLM history DAG + encrypted context capsules agents can save, restore, and crypto-shred.",
   "repository": {
     "url": "https://github.com/Medhovarsh/forkmind",
     "source": "github"
   },
-  "version": "0.3.2",
+  "version": "0.3.3",
   "websiteUrl": "https://medhovarsh.github.io/forkmind/",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "forkmind",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "transport": {
         "type": "stdio"
       },
