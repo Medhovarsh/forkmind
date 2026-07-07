@@ -66,7 +66,7 @@ async function startMcp() {
   const { StdioServerTransport } = await import('@modelcontextprotocol/sdk/server/stdio.js');
   const { z } = await import('zod');
 
-  const server = new McpServer({ name: 'forkmind', version: '0.2.0' });
+  const server = new McpServer({ name: 'forkmind', version: '0.3.0' });
 
   // --- recent activity ---
   server.registerTool(
@@ -284,6 +284,24 @@ async function startMcp() {
       } catch (err) {
         return text({ error: err.message, code: err.code });
       }
+    }
+  );
+
+  server.registerTool(
+    'forkmind_context_replicas',
+    {
+      title: 'Capsule replica health (RAID)',
+      description:
+        'Status of redundant capsule storage: each replica target with ' +
+        'reachability and coverage. Optionally sync (push all capsules + ' +
+        'propagate tombstones) before reporting.',
+      inputSchema: { sync: z.boolean().optional() },
+    },
+    async ({ sync }) => {
+      const result = {};
+      if (sync) result.sync = capsules.replicasSync();
+      result.replicas = capsules.replicasStatus();
+      return text(result);
     }
   );
 

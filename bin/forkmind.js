@@ -17,7 +17,7 @@ function collect(value, prev) {
 program
   .name('forkmind')
   .description('Local-first LLM state branching, debugging & context offloading')
-  .version('0.2.0');
+  .version('0.3.0');
 
 // `forkmind init` — scaffold .forkmind/ in the current working directory.
 program
@@ -200,14 +200,67 @@ context
     process.exit(v.ok ? 0 : 1);
   });
 
+// `forkmind context replicas ...` — RAID for capsules: mirror ciphertext to
+// extra filesystem targets; the engine self-heals from them on corruption.
+const replicasCmd = context
+  .command('replicas')
+  .description('Manage redundant capsule storage (Redundant Array of Independent DAGs)');
+
+replicasCmd
+  .command('add <path>')
+  .description('Add a replica target (another disk, synced folder, network mount)')
+  .action((p) => {
+    try {
+      const targets = capsules.replicasAdd(p);
+      const sync = capsules.replicasSync();
+      console.log(`Replica added. Targets: ${targets.length}. Synced ${sync.copied} copies.`);
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+replicasCmd
+  .command('remove <path>')
+  .description('Remove a replica target from the config (files left in place)')
+  .action((p) => {
+    const targets = capsules.replicasRemove(p);
+    console.log(`Replica removed. Targets: ${targets.length}.`);
+  });
+
+replicasCmd
+  .command('list')
+  .alias('status')
+  .description('Show replica health: reachability and capsule coverage per target')
+  .action(() => {
+    const st = capsules.replicasStatus();
+    if (!st.length) return console.log('No replicas configured.');
+    for (const r of st) {
+      const state = r.reachable ? `${r.capsules} capsules, ${r.missing} missing` : 'UNREACHABLE';
+      console.log(`  ${r.target}  ${state}`);
+    }
+  });
+
+replicasCmd
+  .command('sync')
+  .description('Push all capsules to all targets and propagate tombstones')
+  .action(() => {
+    const s = capsules.replicasSync();
+    console.log(
+      `Synced ${s.capsules} capsules to ${s.targets} targets: ` +
+        `${s.copied} copied, ${s.shredded} tombstones propagated, ${s.failed} failures.`
+    );
+  });
+
 context
   .command('forget <id>')
   .description('IRREVERSIBLY crypto-shred a capsule (requires --confirm <id>)')
   .requiredOption('--confirm <id>', 'echo the capsule id to confirm')
   .action((id, opts) => {
     try {
-      capsules.forgetCapsule(id, opts.confirm);
+      const out = capsules.forgetCapsule(id, opts.confirm);
       console.log(`Capsule ${id} forgotten (key shredded, id tombstoned).`);
+      if (out.replicaWarning) console.log(`Warning: ${out.replicaWarning}`);
     } catch (err) {
       console.error(`Error: ${err.message}`);
       process.exit(1);

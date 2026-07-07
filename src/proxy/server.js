@@ -221,6 +221,14 @@ function createServer(opts = {}) {
     res.json(capsules.capsuleStats());
   });
 
+  app.get('/api/context/replicas', (req, res) => {
+    res.json({ replicas: capsules.replicasStatus() });
+  });
+
+  app.post('/api/context/replicas/sync', (req, res) => {
+    res.json(capsules.replicasSync());
+  });
+
   app.get('/api/context/:id/digest', (req, res) => {
     const d = capsules.getDigest(req.params.id);
     if (!d) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'capsule not found' } });

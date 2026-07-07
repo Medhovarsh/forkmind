@@ -57,6 +57,11 @@ or anything needed in the next few turns.
   ciphertext stay unreadable. Tombstones stop id resurrection.
 - **Local-first** — no cloud, no account, no telemetry; the underlying model
   and provider are never touched (this all happens in what the client sends).
+- **RAID redundancy** — if `forkmind context replicas add <path>` targets are
+  configured, capsules mirror automatically (ciphertext only, never keys) and
+  restore self-heals from replicas on primary loss/corruption. Check health
+  with `forkmind_context_replicas`; after a forget with unreachable replicas,
+  run a sync once they return.
 
 ## Heavy jobs → subagent
 

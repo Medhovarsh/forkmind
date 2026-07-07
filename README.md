@@ -338,6 +338,7 @@ Tools exposed:
 | `forkmind_context_digest`  | Digest + segment map — cheap pre-restore probe     |
 | `forkmind_context_restore` | Full or per-segment restore, integrity-verified    |
 | `forkmind_context_forget`  | Irreversible crypto-shred (requires id echo)       |
+| `forkmind_context_replicas`| Replica (RAID) health, optional sync               |
 
 The server reads the `.forkmind/` in its working directory — point the client's
 `cwd` at your project.
@@ -379,6 +380,27 @@ Guarantees:
   then tombstones the id so identical content can never resurrect it.
 - **The model is never touched** — capsules operate on what the client sends;
   provider, weights, and KV cache are out of scope by design.
+
+### RAID — Redundant Array of Independent DAGs
+
+Mirror capsules to any number of extra filesystem targets (second disk, synced
+folder, network mount). Replicas hold **ciphertext + manifests only — keys are
+never replicated**. If the primary copy is lost or bit-rots, restore self-heals
+from the first replica that passes verification; healed copies get no trust
+shortcut (full integrity check still runs).
+
+```bash
+forkmind context replicas add D:\backup\forkmind   # add target + sync
+forkmind context replicas list                     # coverage per target
+forkmind context replicas sync                     # catch up offline targets,
+                                                   # propagate tombstones
+```
+
+Forgetting reaches every copy: reachable replicas are shredded immediately;
+a replica that was offline gets its stale ciphertext removed on the next
+`sync` (tombstone propagation) — and it was unreadable anyway, since the
+capsule key died at forget time. Tombstones also make heal refuse to
+resurrect anything forgotten.
 
 ## Regression testing — pin good outputs, catch degradation
 
@@ -503,10 +525,11 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 - [x] Automated regression: pin "good" branches, re-run on prompt edits
 - [x] Context capsules — offload context as an encrypted, immutable DAG;
       restore in full or per segment; crypto-shred to forget
+- [x] RAID — Redundant Array of Independent DAGs: replicate capsules across
+      filesystem targets with self-healing restore and tombstone propagation
 - [ ] Capsule export/import — portable encrypted bundles to move context
       between machines and projects
 - [ ] Dashboard capsule panel — capsules as annotations on the turn DAG
-- [ ] Replicated capsule storage (multi-backend redundancy)
 
 ## License
 
