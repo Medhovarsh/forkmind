@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "forkmind",
+  "description": "Local-first LLM branching & debugging tool for Claude Code. Treat AI context windows like a Git repo.",
+  "owner": {
+    "name": "Medhovarsh Bayyapureddi",
+    "url": "https://github.com/Medhovarsh"
+  },
+  "plugins": [
+    {
+      "name": "forkmind",
+      "description": "Capture, branch, and regression-test LLM calls as a DAG — plus context capsules: offload conversation context into encrypted, immutable DAG snapshots and restore on demand. Free & local via Ollama, any OpenAI-compatible API, and MCP for agents.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
