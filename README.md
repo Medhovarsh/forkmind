@@ -561,7 +561,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
       filesystem targets with self-healing restore and tombstone propagation
 - [x] Capsule export/import — portable, passphrase-encrypted bundles to move
       context between machines and projects, independently re-verified on import
-- [ ] Dashboard capsule panel — capsules as annotations on the turn DAG
+- [x] Dashboard capsule panel — browse capsules, inspect the DAG segment map,
+      and run integrity verification from the UI (read-only by design)
 
 ## License
 

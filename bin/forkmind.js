@@ -17,7 +17,7 @@ function collect(value, prev) {
 program
   .name('forkmind')
   .description('Local-first LLM state branching, debugging & context offloading')
-  .version('0.4.0');
+  .version('0.4.1');
 
 // `forkmind init` — scaffold .forkmind/ in the current working directory.
 program

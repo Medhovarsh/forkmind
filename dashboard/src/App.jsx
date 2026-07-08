@@ -3,12 +3,14 @@ import { ReactFlowProvider } from 'reactflow';
 import GraphView from './components/GraphView.jsx';
 import NodePanel from './components/NodePanel.jsx';
 import BranchModal from './components/BranchModal.jsx';
+import CapsulePanel from './components/CapsulePanel.jsx';
 import { useGraphData } from './hooks/useGraphData.js';
 
 export default function App() {
   const { nodes, error, loading, refresh } = useGraphData(2000);
   const [selected, setSelected] = useState(null);
   const [forking, setForking] = useState(null);
+  const [showCapsules, setShowCapsules] = useState(false);
 
   // Keep the selected node object in sync with fresh poll data.
   const selectedNode = selected ? nodes.find((n) => n.id === selected.id) || selected : null;
@@ -22,6 +24,15 @@ export default function App() {
             {loading ? 'loading…' : `${nodes.length} nodes`}
             {error ? `  ·  proxy offline (${error})` : '  ·  live'}
           </span>
+          <button
+            className="capsule-toggle"
+            onClick={() => {
+              setShowCapsules((s) => !s);
+              setSelected(null); // one sidebar at a time
+            }}
+          >
+            💊 Capsules
+          </button>
         </div>
 
         {nodes.length === 0 && !loading ? (
@@ -43,13 +54,15 @@ export default function App() {
         )}
       </div>
 
-      {selectedNode && (
+      {selectedNode && !showCapsules && (
         <NodePanel
           node={selectedNode}
           onClose={() => setSelected(null)}
           onFork={(n) => setForking(n)}
         />
       )}
+
+      {showCapsules && <CapsulePanel onClose={() => setShowCapsules(false)} />}
 
       {forking && (
         <BranchModal

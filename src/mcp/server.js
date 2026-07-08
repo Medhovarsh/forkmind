@@ -66,7 +66,7 @@ async function startMcp() {
   const { StdioServerTransport } = await import('@modelcontextprotocol/sdk/server/stdio.js');
   const { z } = await import('zod');
 
-  const server = new McpServer({ name: 'forkmind', version: '0.4.0' });
+  const server = new McpServer({ name: 'forkmind', version: '0.4.1' });
 
   // --- recent activity ---
   server.registerTool(

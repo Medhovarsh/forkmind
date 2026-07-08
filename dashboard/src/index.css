@@ -57,6 +57,57 @@ body,
   color: var(--muted);
 }
 
+.topbar .capsule-toggle {
+  pointer-events: auto; /* topbar itself is pointer-events: none */
+  margin-left: auto;
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* --- Capsule panel --- */
+.capsule-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.capsule-head {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.capsule-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.capsule-meta {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.capsule-digest {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text);
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.capsule-detail {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
 /* --- Node card on the canvas --- */
 .fm-node {
   border: 1px solid var(--border);
