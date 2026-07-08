@@ -425,6 +425,25 @@ the bundle itself. On import, every segment is independently re-verified
 anything touches disk — the bundle is never trusted blindly, only proven.
 Import is idempotent and honors tombstones, same as a fresh save.
 
+### Archive straight from the capture DAG
+
+The two halves connect: any conversation the proxy captured can be archived
+into a capsule in one move — no manual JSON assembly — and restored later as
+a provider-ready `messages[]` array, ready to splice into the next request:
+
+```bash
+# archive the whole lineage ending at a captured turn
+forkmind context save --from-node a1b2c3d4e5f6 --digest "auth debug, resolved"
+
+# restore as chat messages (or GET /api/context/:id/messages)
+forkmind context show 9f3ac21b7e04 --messages
+```
+
+Same via MCP: `forkmind_context_save { fromNodeId }` and
+`forkmind_context_restore { asMessages: true }` — an agent can archive its own
+captured history mid-task and splice it back whenever needed. Capsules keep
+`sourceNodeIds` links back into the turn DAG.
+
 ### Token savings
 
 `forkmind context save` and `forkmind context stats` report an estimated

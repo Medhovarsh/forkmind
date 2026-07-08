@@ -17,7 +17,7 @@ function collect(value, prev) {
 program
   .name('forkmind')
   .description('Local-first LLM state branching, debugging & context offloading')
-  .version('0.4.1');
+  .version('0.5.0');
 
 // `forkmind init` — scaffold .forkmind/ in the current working directory.
 program
@@ -124,12 +124,25 @@ const context = program
 
 context
   .command('save')
-  .description('Save a capsule from a JSON file or stdin ({title?, items:[{role,content}]})')
+  .description('Save a capsule from a JSON file, stdin, or a captured turn (--from-node)')
   .option('-t, --title <title>', 'capsule title')
   .option('-f, --file <path>', 'read items JSON from a file (default: stdin)')
   .option('-d, --digest <text>', 'plaintext retrieval digest (omit = private capsule)')
+  .option('-n, --from-node <nodeId>', 'archive the captured conversation lineage ending at this turn-DAG node')
   .action(async (opts) => {
     try {
+      if (opts.fromNode) {
+        const out = capsules.saveFromNode(opts.fromNode, {
+          title: opts.title,
+          digest: opts.digest || null,
+        });
+        console.log(
+          `Saved capsule ${out.id} from lineage of ${opts.fromNode}  ` +
+            `(${out.segments} segments, ${out.bytes} bytes, ~${out.tokensEstimated} tokens)`
+        );
+        if (out.digest) console.log(`Digest: ${out.digest}`);
+        return;
+      }
       const raw = opts.file
         ? require('fs').readFileSync(opts.file, 'utf8')
         : await new Promise((resolve, reject) => {
@@ -171,8 +184,12 @@ context
   .description('Restore a capsule (decrypted, integrity-verified)')
   .option('--digest-only', 'print only the digest + structure (no decryption)')
   .option('--segment <segId>', 'restore a single segment')
+  .option('--messages', 'output as a provider-ready messages[] JSON array')
   .action((id, opts) => {
     try {
+      if (opts.messages) {
+        return console.log(JSON.stringify(capsules.readCapsuleAsMessages(id).messages, null, 2));
+      }
       if (opts.digestOnly) {
         const d = capsules.getDigest(id);
         if (!d) throw new Error('capsule not found');

@@ -208,7 +208,11 @@ function createServer(opts = {}) {
 
   app.post('/api/context', (req, res) => {
     try {
-      const { title, items, digest = null, sourceNodeIds = [] } = req.body || {};
+      const { title, items, digest = null, sourceNodeIds = [], fromNodeId } = req.body || {};
+      if (fromNodeId) {
+        // Archive a captured lineage straight from the turn DAG.
+        return res.status(201).json(capsules.saveFromNode(fromNodeId, { title, digest }));
+      }
       res.status(201).json(capsules.saveCapsule({ title, items, digest, sourceNodeIds }));
     } catch (err) {
       // Validation failures (bad title/items) surface as 400s.
@@ -259,6 +263,14 @@ function createServer(opts = {}) {
   app.post('/api/context/:id/verify', (req, res) => {
     try {
       res.json(capsules.verifyCapsule(req.params.id));
+    } catch (err) {
+      capsuleError(res, err);
+    }
+  });
+
+  app.get('/api/context/:id/messages', (req, res) => {
+    try {
+      res.json(capsules.readCapsuleAsMessages(req.params.id));
     } catch (err) {
       capsuleError(res, err);
     }

@@ -66,7 +66,7 @@ async function startMcp() {
   const { StdioServerTransport } = await import('@modelcontextprotocol/sdk/server/stdio.js');
   const { z } = await import('zod');
 
-  const server = new McpServer({ name: 'forkmind', version: '0.4.1' });
+  const server = new McpServer({ name: 'forkmind', version: '0.5.0' });
 
   // --- recent activity ---
   server.registerTool(
@@ -190,14 +190,26 @@ async function startMcp() {
         'comes back, verify with forkmind_context_digest, THEN drop the material ' +
         'from your working context — never before.',
       inputSchema: {
-        title: z.string(),
-        items: z.array(z.object({ role: z.string(), content: z.string() })).min(1),
+        title: z.string().optional(),
+        items: z.array(z.object({ role: z.string(), content: z.string() })).min(1).optional(),
         digest: z.string().optional(),
         sourceNodeIds: z.array(z.string()).optional(),
+        fromNodeId: z
+          .string()
+          .optional()
+          .describe(
+            'Archive the captured conversation lineage ending at this turn-DAG node instead of passing items'
+          ),
       },
     },
-    async ({ title, items, digest, sourceNodeIds }) => {
+    async ({ title, items, digest, sourceNodeIds, fromNodeId }) => {
       try {
+        if (fromNodeId) {
+          return text(capsules.saveFromNode(fromNodeId, { title, digest: digest || null }));
+        }
+        if (!title || !items) {
+          return text({ error: 'pass either fromNodeId, or title + items' });
+        }
         return text(
           capsules.saveCapsule({ title, items, digest: digest || null, sourceNodeIds })
         );
@@ -254,13 +266,21 @@ async function startMcp() {
       description:
         'Decrypt and return capsule content (integrity-verified first). Pass ' +
         'segmentIds for a partial restore — pull back only what you need.',
-      inputSchema: { id: z.string(), segmentIds: z.array(z.string()).optional() },
+      inputSchema: {
+        id: z.string(),
+        segmentIds: z.array(z.string()).optional(),
+        asMessages: z
+          .boolean()
+          .optional()
+          .describe('Return a provider-ready messages[] array instead of raw items'),
+      },
     },
-    async ({ id, segmentIds }) => {
+    async ({ id, segmentIds, asMessages }) => {
       try {
         if (segmentIds && segmentIds.length) {
           return text({ id, items: capsules.readSegments(id, segmentIds) });
         }
+        if (asMessages) return text(capsules.readCapsuleAsMessages(id));
         return text(capsules.readCapsule(id));
       } catch (err) {
         return text({ error: err.message, code: err.code });
