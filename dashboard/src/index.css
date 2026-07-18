@@ -176,6 +176,11 @@ body,
   border-color: var(--accent-2);
 }
 
+.badge.model {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* --- Sidebar panel --- */
 .sidebar {
   width: 420px;

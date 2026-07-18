@@ -13,6 +13,7 @@ function FmNode({ data, selected }) {
       <div className="role">{data.provider}</div>
       <div className="preview">{data.preview}</div>
       <div className="meta">
+        {data.model && <span className="badge model">{data.model}</span>}
         {data.stream && <span className="badge stream">stream</span>}
         <span className="badge">{data.raw.id}</span>
       </div>
@@ -43,7 +44,13 @@ export default function GraphView({ rawNodes, selectedId, onSelect }) {
       proOptions={{ hideAttribution: true }}
     >
       <Background color="#30363d" gap={20} />
-      <MiniMap pannable zoomable maskColor="rgba(13,17,23,0.7)" nodeColor="#21262d" />
+      <MiniMap
+        pannable
+        zoomable
+        style={{ background: '#161b22' }}
+        maskColor="rgba(13,17,23,0.7)"
+        nodeColor="#30363d"
+      />
       <Controls />
     </ReactFlow>
   );
