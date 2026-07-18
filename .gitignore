@@ -7,3 +7,6 @@ dashboard/dist/
 .env.local
 coverage/
 *.tgz
+
+# Local dev / process artifacts
+docs/superpowers/

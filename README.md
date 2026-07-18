@@ -1,30 +1,35 @@
+<div align="center">
+
 # ForkMind 🧠
+
+### Local-first LLM branching, debugging & context offloading
+
+**Treat your AI conversation history like a Git repository — capture every call, branch from any turn, and diff outcomes side by side. All on your machine.**
 
 [![npm](https://img.shields.io/npm/v/forkmind.svg)](https://www.npmjs.com/package/forkmind)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![CI](https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml/badge.svg)](https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-43853d.svg)](https://nodejs.org)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
-[![Contributing](https://img.shields.io/badge/contributing-guide-blue.svg)](./CONTRIBUTING.md)
-[![Contributors](https://img.shields.io/github/contributors/Medhovarsh/forkmind.svg)](https://github.com/Medhovarsh/forkmind/graphs/contributors)
+[![MCP](https://img.shields.io/badge/MCP-registry-8a63d2.svg)](https://registry.modelcontextprotocol.io)
 [![Live site](https://img.shields.io/badge/live-medhovarsh.github.io%2Fforkmind-58a6ff.svg)](https://medhovarsh.github.io/forkmind/)
 
-**Local-first LLM state branching & debugging.** ForkMind treats AI context
-windows like a Git repository: it captures every LLM call into a local
-`.forkmind/` directory, visualizes the conversation as a Directed Acyclic Graph
-(DAG), and lets you **branch** alternative prompts or model params from any point
-in the history — all on your machine, no cloud, no account.
-
-Works with **any OpenAI-compatible API**, defaulting to **free, open-source
-models** via [Ollama](https://ollama.com). Also supports Anthropic and any
-hosted free tier (Groq, OpenRouter, Together, vLLM, LM Studio).
+[**Try in 10s**](#try-it-in-10-seconds) · [Features](#features) · [Install](#install) · [Quick start](#quick-start-free-no-api-key) · [MCP](#mcp--let-agents-query-their-own-history) · [Capsules](#context-capsules--offload-context-as-an-encrypted-dag)
 
 ![ForkMind demo — navigating the conversation DAG, inspecting a node, and diffing two branches side by side](./docs/forkmind-features-demo.gif)
 
-> Live demo: the conversation DAG with a fork off the debug turn, the node
-> inspector (request/response, tokens, provenance), and the **⇄ Compare** view
-> diffing two branches with per-token deltas. The green **● streaming** badge
-> shows live capture — nodes appear as they're recorded.
+</div>
+
+> **What you're seeing:** the conversation DAG with a fork off the debug turn,
+> the node inspector (request/response, tokens, provenance), and the **⇄ Compare**
+> view diffing two branches with per-token deltas. The green **● streaming**
+> badge shows live capture — nodes appear as they're recorded.
+
+ForkMind captures every LLM call into a local `.forkmind/` directory, visualizes
+the conversation as a Directed Acyclic Graph (DAG), and lets you **branch**,
+**diff**, and **replay** from any point in the history. Works with **any
+OpenAI-compatible API**, defaulting to **free, open-source models** via
+[Ollama](https://ollama.com) — also Anthropic, Groq, OpenRouter, Together,
+vLLM, and LM Studio.
 
 <details>
 <summary>Static screenshot</summary>
@@ -38,13 +43,43 @@ hosted free tier (Groq, OpenRouter, Together, vLLM, LM Studio).
 ## Why
 
 Debugging agentic / tool-calling flows means re-running the same prompt with
-tiny tweaks over and over. ForkMind records each run as a node, so you can:
+tiny tweaks over and over, then scrolling through terminal logs to see what
+changed. ForkMind records each run as a node in a conversation tree, so instead
+of re-reading logs you **see** the whole history, **branch** from any turn, and
+**compare** outcomes visually.
 
-- **See** the whole conversation tree, including tool calls and token usage.
-- **Branch** from any historical turn — edit the prompt, swap the model, re-run.
-- **Compare** outcomes visually instead of scrolling through terminal logs.
+Everything is plain JSON on disk. No database, no account, no telemetry —
+nothing leaves your machine except the LLM call you were already making.
 
-Everything is plain JSON on disk. No database. No telemetry.
+---
+
+## Features
+
+- **Capture** — every LLM call is recorded to a plain JSON node under
+  `.forkmind/`. Works from any language via an OpenAI-compatible proxy;
+  streaming responses are reconstructed (text **and** fragmented tool-call args).
+- **DAG dashboard** — a React Flow canvas draws the whole conversation as a
+  tree: every turn, tool call, model, and token count, with the node inspector
+  one click away.
+- **Live capture stream** — nodes pulse into the DAG the instant they're
+  recorded (Server-Sent Events), so you can watch an agent think in real time.
+- **Branch** — fork any historical turn: edit the prompt or swap the model and
+  re-run, linked to the original as a visible branch.
+- **⇄ Compare** — pick any two nodes for a side-by-side, word-level diff of
+  prompts and responses, plus a token-usage table with per-field deltas. "Git
+  diff for LLM outputs."
+- **⏪ Time-travel replay** — re-run a whole chain from an edited node; the
+  regenerated turns land as a sibling branch while your original user turns and
+  tool results re-apply in order.
+- **MCP server** — agents query their own `.forkmind/` history mid-task (recall
+  what they tried, trace how they got somewhere, self-correct).
+- **Regression testing** — pin a known-good output as a baseline, re-run it
+  after prompt/model changes, and catch drift with contains / regex /
+  similarity checks. CI-ready.
+- **Context capsules** — offload context into encrypted, immutable DAG capsules;
+  restore in full or per segment; replicate (RAID), export/import, crypto-shred.
+- **`forkmind demo`** — one command opens the dashboard on a pre-seeded sample
+  DAG, zero setup and zero API key.
 
 ---
 
@@ -313,6 +348,16 @@ your app ──▶ ForkMindOpenAI (baseURL = localhost:4500/v1)
 - **Branching.** Each node records its provider + upstream, so "Fork from here"
   in the dashboard replays the edited request to the same host, linked to the
   historical parent.
+- **Compare.** Any two nodes diff side by side — word-level prompt/response
+  changes and a token table with signed deltas — computed client-side from the
+  captured JSON (`dashboard/src/lib/diff.js`).
+- **Replay.** `POST /api/replay` walks a captured lineage from an edited node to
+  a chosen leaf, regenerating each assistant turn against the modified history
+  while original user turns and tool results re-apply verbatim. The new chain is
+  saved as a sibling branch.
+- **Live stream.** `saveNode` emits on an in-process bus; `GET /api/stream`
+  relays each new node to the dashboard over SSE, so the canvas updates without
+  polling.
 
 ---
 
@@ -552,8 +597,11 @@ Node schema:
 
 | Command            | Does                                                     |
 | ------------------ | -------------------------------------------------------- |
+| `forkmind demo`    | Zero-setup showcase: sample DAG + dashboard in a temp dir |
 | `forkmind init`    | Create `.forkmind/` in the current directory             |
 | `forkmind start`   | Start the proxy (`:4500`) + serve the dashboard if built |
+| `forkmind mcp`     | Start the stdio MCP server for agents                    |
+| `forkmind regression pin/list/remove/run` | Pin baselines and re-run to catch drift |
 | `forkmind context save/list/show/verify/forget` | Encrypted context capsules (see above) |
 
 Env vars: `FORKMIND_PORT`, `FORKMIND_HOST` (default `127.0.0.1` — loopback
@@ -606,6 +654,12 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
       context between machines and projects, independently re-verified on import
 - [x] Dashboard capsule panel — browse capsules, inspect the DAG segment map,
       and run integrity verification from the UI (read-only by design)
+- [x] `forkmind demo` — zero-setup sample DAG + dashboard, no API key
+- [x] Branch diff view — side-by-side node compare with word-level highlighting
+      and per-token deltas
+- [x] Time-travel replay — re-run a whole chain from an edited node as a
+      sibling branch
+- [x] Live capture stream — SSE push so nodes appear in the DAG in real time
 
 ## License
 
