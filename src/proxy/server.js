@@ -182,6 +182,16 @@ function createServer(opts = {}) {
     res.json({ nodes: readAllNodes() });
   });
 
+  // Demo-mode flags. Outside `forkmind demo` this is a no-op shape the
+  // dashboard can rely on unconditionally.
+  app.get('/api/demo-status', (req, res) => {
+    const demo = process.env.FORKMIND_DEMO === '1';
+    res.json({
+      demo,
+      liveForking: demo ? process.env.FORKMIND_DEMO_LIVE === '1' : true,
+    });
+  });
+
   // Single node detail.
   app.get('/api/node/:id', (req, res) => {
     const node = readNode(req.params.id);

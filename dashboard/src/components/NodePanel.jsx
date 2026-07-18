@@ -22,7 +22,7 @@ function responseText(node) {
  * Sidebar inspector: formatted request/response JSON, token usage, provenance,
  * and the entry point to forking a branch from this node.
  */
-export default function NodePanel({ node, onClose, onFork }) {
+export default function NodePanel({ node, onClose, onFork, canFork = true }) {
   if (!node) return null;
   const usage = node.response?.usage;
 
@@ -64,9 +64,20 @@ export default function NodePanel({ node, onClose, onFork }) {
         <h3>Response</h3>
         <pre className="json">{JSON.stringify(node.response, null, 2)}</pre>
 
-        <button className="fork" onClick={() => onFork(node)}>
+        <button
+          className="fork"
+          onClick={() => onFork(node)}
+          disabled={!canFork}
+          title={canFork ? undefined : 'Install Ollama for live forking — demo data is canned.'}
+        >
           ⑂ Fork from here
         </button>
+        {!canFork && (
+          <div className="fork-hint">
+            Install <a href="https://ollama.com" target="_blank" rel="noreferrer">Ollama</a> for
+            live forking — demo data is canned.
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -36,6 +36,18 @@ program
     startServer();
   });
 
+// `forkmind demo` — zero-setup showcase: sample DAG + dashboard in a temp dir.
+program
+  .command('demo')
+  .description('Launch a zero-setup demo: sample conversation DAG + dashboard (nothing touches your project)')
+  .action(() => {
+    const { runDemo } = require('../src/demo/run');
+    runDemo().catch((err) => {
+      console.error(`[forkmind] demo failed to start: ${err.message}`);
+      process.exit(1);
+    });
+  });
+
 // `forkmind mcp` — expose .forkmind/ history to AI agents over MCP (stdio).
 program
   .command('mcp')

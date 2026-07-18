@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import GraphView from './components/GraphView.jsx';
 import NodePanel from './components/NodePanel.jsx';
@@ -11,6 +11,16 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [forking, setForking] = useState(null);
   const [showCapsules, setShowCapsules] = useState(false);
+  // { demo, liveForking } — served by the proxy; demo mode disables forking
+  // when no local model is available to fork against.
+  const [demoStatus, setDemoStatus] = useState({ demo: false, liveForking: true });
+
+  useEffect(() => {
+    fetch('/api/demo-status')
+      .then((r) => r.json())
+      .then(setDemoStatus)
+      .catch(() => {}); // older proxy without the endpoint → keep defaults
+  }, []);
 
   // Keep the selected node object in sync with fresh poll data.
   const selectedNode = selected ? nodes.find((n) => n.id === selected.id) || selected : null;
@@ -20,6 +30,7 @@ export default function App() {
       <div className="graph-pane">
         <div className="topbar">
           <span className="brand">ForkMind 🧠</span>
+          {demoStatus.demo && <span className="demo-badge">DEMO</span>}
           <span className="status">
             {loading ? 'loading…' : `${nodes.length} nodes`}
             {error ? `  ·  proxy offline (${error})` : '  ·  live'}
@@ -59,6 +70,7 @@ export default function App() {
           node={selectedNode}
           onClose={() => setSelected(null)}
           onFork={(n) => setForking(n)}
+          canFork={demoStatus.liveForking}
         />
       )}
 

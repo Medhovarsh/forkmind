@@ -46,6 +46,19 @@ Everything is plain JSON on disk. No database. No telemetry.
 
 ---
 
+## Try it in 10 seconds
+
+```bash
+npx forkmind demo
+```
+
+No API key, no setup: the dashboard opens with a pre-seeded conversation DAG —
+a coding-agent debug session that forks into a failed fix and a winning fix,
+plus an archived context capsule. Everything lives in a throwaway temp
+directory; your project is never touched. If a local
+[Ollama](https://ollama.com) is running, **Fork from here** works live against
+your local model.
+
 ## Install
 
 ```bash
