@@ -22,7 +22,7 @@ function responseText(node) {
  * Sidebar inspector: formatted request/response JSON, token usage, provenance,
  * and the entry point to forking a branch from this node.
  */
-export default function NodePanel({ node, onClose, onFork, canFork = true }) {
+export default function NodePanel({ node, onClose, onFork, onCompare, canFork = true }) {
   if (!node) return null;
   const usage = node.response?.usage;
 
@@ -78,6 +78,9 @@ export default function NodePanel({ node, onClose, onFork, canFork = true }) {
             live forking — demo data is canned.
           </div>
         )}
+        <button className="compare" onClick={() => onCompare(node)}>
+          ⇄ Compare with…
+        </button>
       </div>
     </aside>
   );

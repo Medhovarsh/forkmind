@@ -274,6 +274,124 @@ button.fork:disabled {
   color: var(--accent);
 }
 
+button.compare {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* --- Compare view --- */
+.compare-banner {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+}
+
+.compare-banner code {
+  color: var(--accent);
+}
+
+.compare-banner button {
+  font-size: 12px;
+  padding: 4px 9px;
+}
+
+.compare-modal {
+  width: 1200px;
+  max-width: 96vw;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.compare-grid .compare-section {
+  grid-column: 1 / -1;
+  margin: 14px 0 0;
+}
+
+h3.compare-section {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.compare-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.compare-label {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.compare-sub {
+  width: 100%;
+  color: var(--muted);
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.diff-pane {
+  max-height: 320px;
+}
+
+mark.diff-del {
+  background: rgba(248, 81, 73, 0.25);
+  color: #ffb3ae;
+  text-decoration: line-through;
+  border-radius: 3px;
+}
+
+mark.diff-add {
+  background: rgba(63, 185, 80, 0.25);
+  color: #9ef0ab;
+  border-radius: 3px;
+}
+
+.token-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.token-table th,
+.token-table td {
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  text-align: right;
+}
+
+.token-table td:first-child {
+  text-align: left;
+  color: var(--muted);
+}
+
+.delta-up {
+  color: #f85149;
+}
+
+.delta-down {
+  color: var(--accent-2);
+}
+
 /* --- Modal --- */
 .modal-backdrop {
   position: fixed;

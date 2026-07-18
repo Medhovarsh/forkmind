@@ -3,6 +3,7 @@ import { ReactFlowProvider } from 'reactflow';
 import GraphView from './components/GraphView.jsx';
 import NodePanel from './components/NodePanel.jsx';
 import BranchModal from './components/BranchModal.jsx';
+import CompareView from './components/CompareView.jsx';
 import CapsulePanel from './components/CapsulePanel.jsx';
 import { useGraphData } from './hooks/useGraphData.js';
 
@@ -11,6 +12,9 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [forking, setForking] = useState(null);
   const [showCapsules, setShowCapsules] = useState(false);
+  // Compare flow: compareFrom = first node picked; comparePair = both picked.
+  const [compareFrom, setCompareFrom] = useState(null);
+  const [comparePair, setComparePair] = useState(null);
   // { demo, liveForking } — served by the proxy; demo mode disables forking
   // when no local model is available to fork against.
   const [demoStatus, setDemoStatus] = useState({ demo: false, liveForking: true });
@@ -21,6 +25,26 @@ export default function App() {
       .then(setDemoStatus)
       .catch(() => {}); // older proxy without the endpoint → keep defaults
   }, []);
+
+  // Escape backs out of compare mode / the compare modal.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      setComparePair(null);
+      setCompareFrom(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  function handleSelect(n) {
+    if (compareFrom) {
+      if (n.id !== compareFrom.id) setComparePair([compareFrom, n]);
+      setCompareFrom(null);
+      return;
+    }
+    setSelected(n);
+  }
 
   // Keep the selected node object in sync with fresh poll data.
   const selectedNode = selected ? nodes.find((n) => n.id === selected.id) || selected : null;
@@ -46,6 +70,13 @@ export default function App() {
           </button>
         </div>
 
+        {compareFrom && (
+          <div className="compare-banner">
+            ⇄ Comparing from <code>{compareFrom.id}</code> — click another node
+            <button onClick={() => setCompareFrom(null)}>Cancel</button>
+          </div>
+        )}
+
         {nodes.length === 0 && !loading ? (
           <div className="empty">
             <div style={{ fontSize: 28 }}>🧠</div>
@@ -59,7 +90,7 @@ export default function App() {
             <GraphView
               rawNodes={nodes}
               selectedId={selectedNode?.id}
-              onSelect={(n) => setSelected(n)}
+              onSelect={handleSelect}
             />
           </ReactFlowProvider>
         )}
@@ -70,11 +101,23 @@ export default function App() {
           node={selectedNode}
           onClose={() => setSelected(null)}
           onFork={(n) => setForking(n)}
+          onCompare={(n) => {
+            setCompareFrom(n);
+            setSelected(null); // free the canvas for picking the second node
+          }}
           canFork={demoStatus.liveForking}
         />
       )}
 
       {showCapsules && <CapsulePanel onClose={() => setShowCapsules(false)} />}
+
+      {comparePair && (
+        <CompareView
+          a={comparePair[0]}
+          b={comparePair[1]}
+          onClose={() => setComparePair(null)}
+        />
+      )}
 
       {forking && (
         <BranchModal
