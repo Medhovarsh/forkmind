@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs-extra');
 const { generateNodeId } = require('./hash');
+const { bus } = require('../events');
 
 // Paths resolved PER CALL from process.cwd() — not cached at module load.
 // This is what lets tests chdir into a temp dir and get isolated storage.
@@ -93,6 +94,10 @@ function saveNode(parentNodeId, requestPayload, responsePayload, meta = {}) {
       }
     }
   }
+
+  // Announce the new node so live subscribers (SSE) update instantly. Fire
+  // after all tree links are written so listeners see a consistent node.
+  bus.emit('node', node);
 
   return id;
 }

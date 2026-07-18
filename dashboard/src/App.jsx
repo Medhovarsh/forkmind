@@ -9,7 +9,7 @@ import CapsulePanel from './components/CapsulePanel.jsx';
 import { useGraphData } from './hooks/useGraphData.js';
 
 export default function App() {
-  const { nodes, error, loading, refresh } = useGraphData(2000);
+  const { nodes, error, loading, refresh, streaming, freshIds } = useGraphData();
   const [selected, setSelected] = useState(null);
   const [forking, setForking] = useState(null);
   const [showCapsules, setShowCapsules] = useState(false);
@@ -59,7 +59,13 @@ export default function App() {
           {demoStatus.demo && <span className="demo-badge">DEMO</span>}
           <span className="status">
             {loading ? 'loading…' : `${nodes.length} nodes`}
-            {error ? `  ·  proxy offline (${error})` : '  ·  live'}
+            {error ? (
+              `  ·  proxy offline (${error})`
+            ) : streaming ? (
+              <span className="streaming">  ·  ● streaming</span>
+            ) : (
+              '  ·  live'
+            )}
           </span>
           <button
             className="capsule-toggle"
@@ -92,6 +98,7 @@ export default function App() {
             <GraphView
               rawNodes={nodes}
               selectedId={selectedNode?.id}
+              freshIds={freshIds}
               onSelect={handleSelect}
             />
           </ReactFlowProvider>

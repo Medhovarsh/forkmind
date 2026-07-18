@@ -11,6 +11,7 @@ const { reconstructOpenAI, reconstructAnthropic } = require('./reconstruct');
 const { generateNodeId } = require('../storage/hash');
 const { initStorage, saveNode, readAllNodes, readNode } = require('../storage/engine');
 const { replayChain } = require('../replay/engine');
+const { bus } = require('../events');
 const capsules = require('../context/engine');
 
 const PORT = process.env.FORKMIND_PORT || 4500;
@@ -181,6 +182,28 @@ function createServer(opts = {}) {
   // Whole tree as a flat array (dashboard transforms into a DAG client-side).
   app.get('/api/graph', (req, res) => {
     res.json({ nodes: readAllNodes() });
+  });
+
+  // Live capture stream: push each newly saved node to the dashboard the
+  // instant it is written, so the DAG updates without waiting for a poll.
+  app.get('/api/stream', (req, res) => {
+    res.set({
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    });
+    res.flushHeaders();
+
+    const onNode = (node) => res.write(`data: ${JSON.stringify(node)}\n\n`);
+    bus.on('node', onNode);
+
+    // Keep idle connections alive through intermediary proxies.
+    const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 15000);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      bus.off('node', onNode);
+    });
   });
 
   // Demo-mode flags. Outside `forkmind demo` this is a no-op shape the

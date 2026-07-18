@@ -139,6 +139,26 @@ body,
   box-shadow: 0 0 0 1px var(--accent);
 }
 
+.fm-node.fresh {
+  animation: fm-arrive 1.2s ease-out;
+}
+
+@keyframes fm-arrive {
+  0% {
+    border-color: var(--accent-2);
+    box-shadow: 0 0 0 4px rgba(63, 185, 80, 0.5);
+    transform: scale(1.06);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(63, 185, 80, 0);
+    transform: scale(1);
+  }
+}
+
+.topbar .streaming {
+  color: var(--accent-2);
+}
+
 .fm-node .role {
   color: var(--accent);
   font-weight: 600;

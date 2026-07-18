@@ -8,7 +8,7 @@ import { buildGraph } from '../lib/layout.js';
  */
 function FmNode({ data, selected }) {
   return (
-    <div className={`fm-node ${selected ? 'selected' : ''}`}>
+    <div className={`fm-node ${selected ? 'selected' : ''} ${data.fresh ? 'fresh' : ''}`}>
       <Handle type="target" position={Position.Top} />
       <div className="role">{data.provider}</div>
       <div className="preview">{data.preview}</div>
@@ -27,11 +27,16 @@ const nodeTypes = { fmNode: FmNode };
 /**
  * React Flow canvas rendering the conversation DAG.
  */
-export default function GraphView({ rawNodes, selectedId, onSelect }) {
+export default function GraphView({ rawNodes, selectedId, freshIds, onSelect }) {
   const { nodes, edges } = useMemo(() => buildGraph(rawNodes), [rawNodes]);
 
-  // Reflect selection into node props so the card can highlight.
-  const decorated = nodes.map((n) => ({ ...n, selected: n.id === selectedId }));
+  // Reflect selection + just-arrived state into node props so the card can
+  // highlight and play the arrival pulse.
+  const decorated = nodes.map((n) => ({
+    ...n,
+    selected: n.id === selectedId,
+    data: { ...n.data, fresh: freshIds?.has(n.id) },
+  }));
 
   return (
     <ReactFlow

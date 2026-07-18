@@ -59,6 +59,15 @@ directory; your project is never touched. If a local
 [Ollama](https://ollama.com) is running, **Fork from here** works live against
 your local model.
 
+Once you're in, try:
+
+- **⇄ Compare** any two nodes for a side-by-side, word-level diff of prompts,
+  responses, and token usage — "git diff for LLM outputs".
+- **⏪ Replay from here** to re-run a whole chain from an edited node; the
+  regenerated turns land as a sibling branch.
+- **Live capture** — nodes pulse into the DAG the instant they're recorded, so
+  you can watch an agent think in real time.
+
 ## Install
 
 ```bash
