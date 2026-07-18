@@ -19,10 +19,12 @@ Works with **any OpenAI-compatible API**, defaulting to **free, open-source
 models** via [Ollama](https://ollama.com). Also supports Anthropic and any
 hosted free tier (Groq, OpenRouter, Together, vLLM, LM Studio).
 
-![ForkMind demo — clicking through the conversation DAG, inspecting a node, and opening the fork dialog](./docs/forkmind-demo.gif)
+![ForkMind demo — navigating the conversation DAG, inspecting a node, and diffing two branches side by side](./docs/forkmind-features-demo.gif)
 
-> Live demo: a conversation tree with a branch off the root, the node inspector
-> (request/response, tokens, provenance), and the **Fork from here** dialog.
+> Live demo: the conversation DAG with a fork off the debug turn, the node
+> inspector (request/response, tokens, provenance), and the **⇄ Compare** view
+> diffing two branches with per-token deltas. The green **● streaming** badge
+> shows live capture — nodes appear as they're recorded.
 
 <details>
 <summary>Static screenshot</summary>
