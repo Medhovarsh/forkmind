@@ -4,6 +4,7 @@ import GraphView from './components/GraphView.jsx';
 import NodePanel from './components/NodePanel.jsx';
 import BranchModal from './components/BranchModal.jsx';
 import CompareView from './components/CompareView.jsx';
+import ReplayModal from './components/ReplayModal.jsx';
 import CapsulePanel from './components/CapsulePanel.jsx';
 import { useGraphData } from './hooks/useGraphData.js';
 
@@ -15,6 +16,7 @@ export default function App() {
   // Compare flow: compareFrom = first node picked; comparePair = both picked.
   const [compareFrom, setCompareFrom] = useState(null);
   const [comparePair, setComparePair] = useState(null);
+  const [replaying, setReplaying] = useState(null);
   // { demo, liveForking } — served by the proxy; demo mode disables forking
   // when no local model is available to fork against.
   const [demoStatus, setDemoStatus] = useState({ demo: false, liveForking: true });
@@ -105,6 +107,7 @@ export default function App() {
             setCompareFrom(n);
             setSelected(null); // free the canvas for picking the second node
           }}
+          onReplay={(n) => setReplaying(n)}
           canFork={demoStatus.liveForking}
         />
       )}
@@ -116,6 +119,18 @@ export default function App() {
           a={comparePair[0]}
           b={comparePair[1]}
           onClose={() => setComparePair(null)}
+        />
+      )}
+
+      {replaying && (
+        <ReplayModal
+          node={replaying}
+          nodes={nodes}
+          onClose={() => setReplaying(null)}
+          onDone={() => {
+            setReplaying(null);
+            refresh();
+          }}
         />
       )}
 

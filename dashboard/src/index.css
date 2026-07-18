@@ -274,9 +274,25 @@ button.fork:disabled {
   color: var(--accent);
 }
 
-button.compare {
+button.compare,
+button.replay {
   width: 100%;
   margin-top: 8px;
+}
+
+button.replay:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.modal select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 10px;
+  font-size: 13px;
 }
 
 /* --- Compare view --- */

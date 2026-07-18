@@ -22,7 +22,7 @@ function responseText(node) {
  * Sidebar inspector: formatted request/response JSON, token usage, provenance,
  * and the entry point to forking a branch from this node.
  */
-export default function NodePanel({ node, onClose, onFork, onCompare, canFork = true }) {
+export default function NodePanel({ node, onClose, onFork, onCompare, onReplay, canFork = true }) {
   if (!node) return null;
   const usage = node.response?.usage;
 
@@ -81,6 +81,16 @@ export default function NodePanel({ node, onClose, onFork, onCompare, canFork = 
         <button className="compare" onClick={() => onCompare(node)}>
           ⇄ Compare with…
         </button>
+        {node.children?.length > 0 && (
+          <button
+            className="replay"
+            onClick={() => onReplay(node)}
+            disabled={!canFork}
+            title={canFork ? undefined : 'Needs a reachable model upstream (e.g. Ollama).'}
+          >
+            ⏪ Replay from here
+          </button>
+        )}
       </div>
     </aside>
   );

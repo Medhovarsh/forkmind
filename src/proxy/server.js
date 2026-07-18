@@ -10,6 +10,7 @@ const {
 const { reconstructOpenAI, reconstructAnthropic } = require('./reconstruct');
 const { generateNodeId } = require('../storage/hash');
 const { initStorage, saveNode, readAllNodes, readNode } = require('../storage/engine');
+const { replayChain } = require('../replay/engine');
 const capsules = require('../context/engine');
 
 const PORT = process.env.FORKMIND_PORT || 4500;
@@ -197,6 +198,41 @@ function createServer(opts = {}) {
     const node = readNode(req.params.id);
     if (!node) return res.status(404).json({ error: 'node not found' });
     res.json(node);
+  });
+
+  // Time-travel replay: re-run a captured chain from an edited node down to a
+  // chosen leaf. Regenerated turns save as a sibling branch; original user
+  // turns and tool results re-apply verbatim (no live tool execution).
+  app.post('/api/replay', async (req, res) => {
+    const { fromNodeId, leafId, request: edited, model } = req.body || {};
+    const fromNode = fromNodeId && readNode(fromNodeId);
+    if (!fromNode || !edited) {
+      return res.status(400).json({ error: 'fromNodeId (existing) and request are required' });
+    }
+
+    const cfg = PROVIDERS[fromNode.meta?.provider || 'openai'] || PROVIDERS.openai;
+    const upstream = resolveUpstream(req.headers, fromNode.meta?.upstream || cfg.defaultUpstream);
+    // Relay only auth; interceptor.forward builds the rest of the headers.
+    const authHeaders = {};
+    if (req.headers.authorization) authHeaders.authorization = req.headers.authorization;
+    if (req.headers['x-api-key']) authHeaders['x-api-key'] = req.headers['x-api-key'];
+
+    try {
+      const out = await replayChain({
+        fromNodeId,
+        leafId: leafId || fromNodeId,
+        request: edited,
+        model,
+        forwardFn: (body) => forward(upstream, cfg.apiPath, body, authHeaders),
+      });
+      res.json(out);
+    } catch (err) {
+      if (err.saved) {
+        // Upstream died mid-chain — the branch built so far stays visible.
+        return res.status(502).json({ error: err.message, nodes: err.saved });
+      }
+      res.status(400).json({ error: err.message });
+    }
   });
 
   // --- Context capsule API (save context as an encrypted DAG, drop it from
