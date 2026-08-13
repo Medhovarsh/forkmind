@@ -253,7 +253,7 @@ path `npx github:medhovarsh/forkmind start` keeps working.
 
 **Standalone service (per brief):**
 
-- `Dockerfile` (node:18-alpine, `npm ci --omit=dev`, dashboard prebuilt,
+- `Dockerfile` (node:20-alpine, `npm ci --omit=dev`, dashboard prebuilt,
   `CMD ["node", "bin/forkmind.js", "start"]`).
 - Volumes: `/data/.forkmind` (capsules, working dir) and `/keys` (key material)
   — **two separate volumes** so backups of `.forkmind/` never include keys.
