@@ -74,8 +74,12 @@ nothing leaves your machine except the LLM call you were already making.
 - **MCP server** — agents query their own `.forkmind/` history mid-task (recall
   what they tried, trace how they got somewhere, self-correct).
 - **Regression testing** — pin a known-good output as a baseline, re-run it
-  after prompt/model changes, and catch drift with contains / regex /
-  similarity checks. CI-ready.
+  after prompt/model changes, and catch drift with free offline checks
+  (contains / regex / similarity), tool-call assertions, or an opt-in LLM judge
+  graded against your own rubric. CI-ready.
+- **Trajectory regression** — pin a whole multi-turn agent *path* from the
+  captured graph and replay it, so a prompt change that reroutes an agent
+  mid-run gets caught even when the final answer still reads fine.
 - **Context capsules** — offload context into encrypted, immutable DAG capsules;
   restore in full or per segment; replicate (RAID), export/import, crypto-shred.
 - **`forkmind demo`** — one command opens the dashboard on a pre-seeded sample
@@ -542,7 +546,7 @@ forkmind regression run                 # keyless local (Ollama)
 forkmind regression run --key $GROQ_API_KEY --upstream https://api.groq.com/openai
 ```
 
-Each case checks the replayed output against:
+### Mechanical checks — free, offline, deterministic
 
 - **`contains`** — substrings that must appear
 - **`not-contains`** — substrings that must NOT appear
@@ -552,8 +556,138 @@ Each case checks the replayed output against:
   assertions). LLM output is non-deterministic, so prefer assertions over exact
   match.
 
+None of these read meaning. They answer *"does this text still look like that
+text"*, not *"is this answer still correct"*. `contains` and `regex` are precise
+proxies — if a required fact disappears, they catch it every time. Similarity is
+a deliberately cheap alarm: it flags that something changed, and it will cry wolf
+on a rewrite that's perfectly correct.
+
+### Tool-call checks — what the agent DID, not what it said
+
+Text checks ask whether the answer still reads right. For an agent, that's the
+wrong question. A wrong sentence is annoying; a wrong tool call writes to
+somebody's system. These assert on the calls themselves — structured data, so
+they're free, offline, and exact:
+
+```bash
+forkmind regression pin a1b2c3d4e5f6 \
+  --name refund-flow \
+  --tool 'create_ticket:{"priority":"high"}' \  # must call it, with these args
+  --not-tool issue_refund \                     # must never call this
+  --tools-exact                                 # and must call nothing else
+```
+
+- **`--tool name`** / **`--tool 'name:{json}'`** — the call must appear.
+  Arguments match as a **subset**, so you pin the fields that matter and ignore
+  the rest.
+- **`--not-tool name`** — the destructive-action guard. The check that matters
+  most when a prompt tweak makes an agent bolder than it should be.
+- **`--tools-exact`** — fail on any *extra* call, not just a missing one. With
+  no `--tool` at all, this asserts the agent acted on nothing.
+
+Works identically on OpenAI `tool_calls` and Anthropic `tool_use` blocks; both
+normalize to `{ name, args }`. A model that emits malformed argument JSON is
+reported with the raw text under `args._raw` rather than silently dropped, so
+the assertion fails loudly instead of the call disappearing.
+
+The failure mode this exists for: **the text can be word-for-word identical
+while the action is wrong.** Every text check passes, similarity scores 1.0, and
+the agent charged the wrong account. Only the tool check catches it.
+
+### LLM judge — opt-in, costs an API call, reads meaning
+
+For the cases where wording is free to change but the *content* must not, pin a
+rubric and let a model grade the replay against it:
+
+```bash
+forkmind regression pin a1b2c3d4e5f6 \
+  --name refund-policy \
+  --judge "The answer must state the 30-day window and must not promise an exception." \
+  --judge-threshold 0.8 \
+  --judge-model gpt-4o          # optional: grade with a stronger model than the case uses
+
+forkmind regression run --judge-key $OPENAI_API_KEY
+forkmind regression run --no-judge   # mechanical checks only — free, offline, no API calls
+```
+
+The judge sees the rubric, the approved baseline, and the candidate, and is told
+explicitly **not** to penalize rewording — only content that is wrong, missing,
+or contradictory. It returns a `0-1` score; the case fails below
+`--judge-threshold` (default `0.7`).
+
+Three properties worth knowing before you trust it:
+
+- **It fails closed.** A judge that errors, times out, or returns unparseable
+  output marks the check **failed**, never skipped. A gate that silently passes
+  when its grader is broken is worse than no gate.
+- **A skip is visible.** `--no-judge` still records the check, flagged as
+  skipped in the report, so a suite can't quietly stop enforcing its rubric.
+- **It is not proof.** The judge is non-deterministic and only as good as the
+  rubric you wrote. It is a stronger signal than word overlap — not a
+  correctness guarantee.
+
 Cases are JSON in `.forkmind/regressions/` — commit them to share baselines and
 gate prompt changes in CI.
+
+## Trajectory regression — pin the path, not the turn
+
+Everything above tests **one turn**. For an agent that's the wrong unit. Agents
+fail in the *middle* of a run — they skip the lookup, they write before they
+confirm, a prompt tweak reroutes them entirely — and then produce a final
+sentence that reads completely fine. A last-message assertion sees nothing.
+
+Because ForkMind captures real traffic as a parent-linked DAG, a whole path is
+already sitting there. Freeze it:
+
+```bash
+# Pin the path ending at this node (walks up to the root)
+forkmind trajectory pin f4e5d6c7b8a9 \
+  --name refund-run \
+  --sequence exact \                 # same actions, same order
+  --not-tool issue_refund \          # never, anywhere in the run
+  --tool-order verify_identity,charge_card
+
+forkmind trajectory list
+forkmind trajectory run              # exit 1 on any failure — CI-ready
+```
+
+What gets checked across the whole run:
+
+- **`--sequence exact`** — the flattened action sequence must match the baseline
+  step for step. **`subsequence`** allows extra actions as long as the baseline
+  ones still appear in order. **`none`** leaves the route free.
+- **`--not-tool`** — a forbidden action anywhere in the trajectory.
+- **`--tool-order before,after`** — ordering constraints. *Searched before it
+  wrote. Verified before it charged.*
+- **`--judge`** — optional rubric on the **final** answer, same judge as above.
+- **`--from <nodeId>`** — start the path at an ancestor instead of the root, so
+  you can pin just the interesting tail of a long run.
+
+**Text is deliberately unconstrained.** Reworded output passes. Only the route
+is pinned — because that's the part that touches other people's systems.
+
+### The limitation, stated plainly
+
+Replaying a path **re-applies the original recorded tool results**. Tools are not
+executed live. That's deliberate — it holds the environment fixed so the only
+variable is the model's decisions — but it has a hard consequence: the moment the
+agent takes a *different* action, the recorded result waiting for it answers a
+question it never asked. Everything after that point would be fiction.
+
+So the run **stops at the first divergence** and reports exactly where:
+
+```
+  ✗ FAIL  refund-run  (2/3 steps)
+         path: verify_identity → issue_refund
+         ↳ failed divergence: step 2/3: expected [charge_card], got [issue_refund]
+           — replay stopped (recorded tool results no longer apply)
+```
+
+That failure is the whole point of the feature: the final message would have
+read fine.
+
+Trajectories are JSON in `.forkmind/trajectories/` — commit them alongside your
+single-turn cases.
 
 ## Zero cost & local
 
@@ -602,6 +736,7 @@ Node schema:
 | `forkmind start`   | Start the proxy (`:4500`) + serve the dashboard if built |
 | `forkmind mcp`     | Start the stdio MCP server for agents                    |
 | `forkmind regression pin/list/remove/run` | Pin baselines and re-run to catch drift |
+| `forkmind trajectory pin/list/remove/run` | Pin multi-turn agent paths and catch rerouting |
 | `forkmind context save/list/show/verify/forget` | Encrypted context capsules (see above) |
 
 Env vars: `FORKMIND_PORT`, `FORKMIND_HOST` (default `127.0.0.1` — loopback

@@ -1,32 +1,12 @@
 const { forward } = require('../proxy/interceptor');
-const { listCases, getCase, evaluate } = require('./engine');
-
-// Provider -> upstream path. Mirrors the proxy's routing so replays hit the
-// same endpoint the original call used.
-const PROVIDER_PATHS = {
-  openai: '/v1/chat/completions',
-  anthropic: '/v1/messages',
-};
-
-/**
- * Build auth headers for a replay. We don't know the provider's exact scheme,
- * so send both common ones; the upstream ignores the irrelevant one. Keyless
- * local providers (Ollama) need nothing.
- */
-function authHeaders(apiKey) {
-  const h = { 'content-type': 'application/json' };
-  if (apiKey) {
-    h['authorization'] = `Bearer ${apiKey}`;
-    h['x-api-key'] = apiKey;
-  }
-  return h;
-}
+const { listCases, getCase, evaluateWithJudge } = require('./engine');
+const { PROVIDER_PATHS, authHeaders } = require('./providers');
 
 /**
  * Replay one case against its upstream and evaluate the result.
  *
  * @param {object} caseObj
- * @param {object} opts - { apiKey, upstream } (upstream overrides the case's)
+ * @param {object} opts - { apiKey, upstream, judge, judgeApiKey, judgeUpstream }
  * @returns {Promise<object>} { name, passed, similarity, checks, error? }
  */
 async function runCase(caseObj, opts = {}) {
@@ -47,7 +27,12 @@ async function runCase(caseObj, opts = {}) {
     if (status < 200 || status >= 300) {
       return { name: caseObj.name, passed: false, error: `upstream HTTP ${status}` };
     }
-    const result = evaluate(caseObj, data);
+    const result = await evaluateWithJudge(caseObj, data, {
+      judge: opts.judge,
+      // Judging can point at a different (stronger) model than the case itself.
+      judgeApiKey: opts.judgeApiKey || opts.apiKey,
+      judgeUpstream: opts.judgeUpstream,
+    });
     return { name: caseObj.name, ...result };
   } catch (err) {
     return { name: caseObj.name, passed: false, error: err.message };
@@ -57,7 +42,7 @@ async function runCase(caseObj, opts = {}) {
 /**
  * Replay all (or a named subset of) regression cases.
  *
- * @param {object} opts - { apiKey, upstream, only? (case name/id) }
+ * @param {object} opts - { apiKey, upstream, only?, judge?, judgeApiKey?, judgeUpstream? }
  * @returns {Promise<{results: object[], passed: number, failed: number}>}
  */
 async function runAll(opts = {}) {
@@ -86,7 +71,13 @@ function printReport({ results, passed, failed }) {
       console.log(`  ${mark}  ${r.name}  —  error: ${r.error}`);
       continue;
     }
-    console.log(`  ${mark}  ${r.name}  (similarity ${r.similarity.toFixed(3)})`);
+    const judged = r.checks.find((c) => c.type === 'judge');
+    const judgeNote = judged
+      ? judged.skipped
+        ? ', judge skipped'
+        : `, judge ${judged.score != null ? judged.score.toFixed(2) : 'n/a'}`
+      : '';
+    console.log(`  ${mark}  ${r.name}  (similarity ${r.similarity.toFixed(3)}${judgeNote})`);
     for (const c of r.checks) {
       if (!c.ok) console.log(`         ↳ failed ${c.type}: ${c.detail}`);
     }
@@ -95,4 +86,6 @@ function printReport({ results, passed, failed }) {
   return failed > 0 ? 1 : 0;
 }
 
-module.exports = { runCase, runAll, printReport, PROVIDER_PATHS };
+// PROVIDER_PATHS/authHeaders re-exported from ./providers so existing importers
+// of the runner keep working after the move.
+module.exports = { runCase, runAll, printReport, PROVIDER_PATHS, authHeaders };

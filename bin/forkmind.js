@@ -7,6 +7,7 @@ const { startServer } = require('../src/proxy/server');
 const { startMcp } = require('../src/mcp/server');
 const reg = require('../src/regression/engine');
 const { runAll, printReport } = require('../src/regression/runner');
+const traj = require('../src/regression/trajectory');
 const capsules = require('../src/context/engine');
 
 // commander collects repeated --contains/--regex flags into an array.
@@ -14,10 +15,29 @@ function collect(value, prev) {
   return (prev || []).concat([value]);
 }
 
+/**
+ * Parse a --tool spec: `name` or `name:{"json":"args"}`. Splitting on the FIRST
+ * colon keeps colons inside the JSON payload intact.
+ */
+function parseToolSpec(value, prev) {
+  const i = value.indexOf(':');
+  if (i === -1) return (prev || []).concat([{ name: value.trim(), args: null }]);
+  const name = value.slice(0, i).trim();
+  const rest = value.slice(i + 1).trim();
+  let args;
+  try {
+    args = JSON.parse(rest);
+  } catch (e) {
+    throw new Error(`--tool "${name}": arguments must be valid JSON (${e.message})`);
+  }
+  return (prev || []).concat([{ name, args }]);
+}
+
 program
   .name('forkmind')
   .description('Local-first LLM state branching, debugging & context offloading')
-  .version('0.9.0');
+  // Read from package.json so `forkmind --version` can't drift from the release.
+  .version(require('../package.json').version);
 
 // `forkmind init` — scaffold .forkmind/ in the current working directory.
 program
@@ -74,6 +94,13 @@ regression
   .option('--not-contains <text>', 'substring the output must NOT contain (repeatable)', collect, [])
   .option('-r, --regex <pattern>', 'regex the output must match (repeatable)', collect, [])
   .option('-s, --min-similarity <n>', 'min Jaccard similarity vs baseline (0-1)', parseFloat)
+  .option('-t, --tool <name[:jsonArgs]>', 'tool the agent must call, optionally with required args (repeatable)', parseToolSpec, [])
+  .option('--not-tool <name>', 'tool the agent must NOT call (repeatable)', collect, [])
+  .option('--tools-exact', 'fail if the agent calls any tool beyond those listed with --tool')
+  .option('-j, --judge <rubric>', 'grade the output against this rubric with an LLM judge (costs 1 API call per run)')
+  .option('--judge-threshold <n>', 'min judge score to pass (0-1, default 0.7)', parseFloat)
+  .option('--judge-model <model>', 'model to grade with (default: the case\'s own model)')
+  .option('--judge-provider <name>', 'judge provider: openai | anthropic (default: the case\'s own)')
   .action((nodeId, opts) => {
     try {
       const c = reg.pinNode(nodeId, opts.name, {
@@ -81,6 +108,17 @@ regression
         notContains: opts.notContains,
         regex: opts.regex,
         minSimilarity: opts.minSimilarity,
+        tools: {
+          called: opts.tool,
+          notCalled: opts.notTool,
+          exact: opts.toolsExact,
+        },
+        judge: opts.judge && {
+          rubric: opts.judge,
+          threshold: opts.judgeThreshold,
+          model: opts.judgeModel,
+          provider: opts.judgeProvider,
+        },
       });
       console.log(`Pinned regression case "${c.name}" (${c.id}) from node ${nodeId}`);
     } catch (err) {
@@ -99,7 +137,9 @@ regression
       const a = c.assertions;
       console.log(
         `  ${c.name}  [${c.id}]  ${c.provider || '—'}  ` +
-          `contains:${a.contains.length} regex:${a.regex.length} minSim:${a.minSimilarity}`
+          `contains:${a.contains.length} regex:${a.regex.length} minSim:${a.minSimilarity} ` +
+          `tools:${a.tools ? a.tools.called.length + a.tools.notCalled.length : 'off'} ` +
+          `judge:${a.judge ? a.judge.threshold : 'off'}`
       );
     }
   });
@@ -118,13 +158,122 @@ regression
   .option('-k, --key <apiKey>', 'API key for the upstream (or set FORKMIND_API_KEY)')
   .option('-u, --upstream <url>', 'override upstream base URL for all cases')
   .option('--only <nameOrId>', 'run a single case')
+  .option('--no-judge', 'skip LLM judging (mechanical checks only — free and offline)')
+  .option('--judge-key <apiKey>', 'API key for the judge model (or set FORKMIND_JUDGE_API_KEY)')
+  .option('--judge-upstream <url>', 'override upstream base URL for judge calls')
   .action(async (opts) => {
     const report = await runAll({
       apiKey: opts.key || process.env.FORKMIND_API_KEY,
       upstream: opts.upstream,
       only: opts.only,
+      judge: opts.judge,
+      judgeApiKey: opts.judgeKey || process.env.FORKMIND_JUDGE_API_KEY,
+      judgeUpstream: opts.judgeUpstream,
     });
     process.exit(printReport(report));
+  });
+
+// `forkmind trajectory ...` — pin a PATH through the graph and re-run it, so a
+// prompt change that reroutes an agent mid-run gets caught even when the final
+// answer still reads fine.
+const trajectory = program
+  .command('trajectory')
+  .alias('traj')
+  .description('Pin multi-turn agent paths and replay them to catch rerouting');
+
+// `--tool-order a,b` -> [['a','b']] pairs, collected across repeats.
+function parseOrdering(value, prev) {
+  const parts = value.split(',').map((s) => s.trim()).filter(Boolean);
+  if (parts.length !== 2) {
+    throw new Error(`--tool-order expects "before,after" (got "${value}")`);
+  }
+  return (prev || []).concat([parts]);
+}
+
+trajectory
+  .command('pin <leafNodeId>')
+  .description('Freeze the path ending at this node as a trajectory baseline')
+  .requiredOption('-n, --name <name>', 'unique trajectory name')
+  .option('-f, --from <nodeId>', 'start the path at this ancestor instead of the root')
+  .option(
+    '-q, --sequence <mode>',
+    'action sequence rule: exact | subsequence | none',
+    'exact'
+  )
+  .option('--not-tool <name>', 'tool that must never be called anywhere in the run (repeatable)', collect, [])
+  .option('--tool-order <before,after>', 'ordering constraint, e.g. search,write (repeatable)', parseOrdering, [])
+  .option('-j, --judge <rubric>', 'grade the FINAL answer against this rubric (costs 1 API call)')
+  .option('--judge-threshold <n>', 'min judge score to pass (0-1, default 0.7)', parseFloat)
+  .option('--judge-model <model>', 'model to grade with (default: the case\'s own model)')
+  .action((leafNodeId, opts) => {
+    try {
+      const c = traj.pinTrajectory(
+        leafNodeId,
+        opts.name,
+        {
+          sequence: opts.sequence === 'none' ? null : opts.sequence,
+          notCalled: opts.notTool,
+          before: opts.toolOrder,
+          judge: opts.judge && {
+            rubric: opts.judge,
+            threshold: opts.judgeThreshold,
+            model: opts.judgeModel,
+          },
+        },
+        { from: opts.from }
+      );
+      const actions = c.steps.reduce((acc, s) => acc.concat(s.actions), []);
+      console.log(
+        `Pinned trajectory "${c.name}" (${c.id}) — ${c.steps.length} steps, ` +
+          `path: ${actions.length ? actions.join(' → ') : 'no actions'}`
+      );
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+trajectory
+  .command('list')
+  .description('List pinned trajectories')
+  .action(() => {
+    const cases = traj.listTrajectories();
+    if (!cases.length) return console.log('No trajectories pinned.');
+    for (const c of cases) {
+      const actions = c.steps.reduce((acc, s) => acc.concat(s.actions), []);
+      console.log(
+        `  ${c.name}  [${c.id}]  ${c.steps.length} steps  ` +
+          `seq:${c.assertions.sequence || 'none'}  ` +
+          `path: ${actions.length ? actions.join(' → ') : '—'}`
+      );
+    }
+  });
+
+trajectory
+  .command('remove <nameOrId>')
+  .alias('rm')
+  .description('Delete a pinned trajectory')
+  .action((nameOrId) => {
+    console.log(traj.removeTrajectory(nameOrId) ? `Removed "${nameOrId}"` : `Not found: ${nameOrId}`);
+  });
+
+trajectory
+  .command('run')
+  .description('Replay pinned trajectories and report pass/fail (exit 1 on any failure)')
+  .option('-k, --key <apiKey>', 'API key for the upstream (or set FORKMIND_API_KEY)')
+  .option('-u, --upstream <url>', 'override upstream base URL')
+  .option('--only <nameOrId>', 'run a single trajectory')
+  .option('--no-judge', 'skip LLM judging of the final answer')
+  .option('--judge-key <apiKey>', 'API key for the judge model (or set FORKMIND_JUDGE_API_KEY)')
+  .action(async (opts) => {
+    const report = await traj.runAllTrajectories({
+      apiKey: opts.key || process.env.FORKMIND_API_KEY,
+      upstream: opts.upstream,
+      only: opts.only,
+      judge: opts.judge,
+      judgeApiKey: opts.judgeKey || process.env.FORKMIND_JUDGE_API_KEY || opts.key,
+    });
+    process.exit(traj.printTrajectoryReport(report));
   });
 
 // `forkmind context ...` — save conversation context as an immutable encrypted

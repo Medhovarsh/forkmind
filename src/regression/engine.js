@@ -2,7 +2,8 @@ const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs-extra');
 const { readNode } = require('../storage/engine');
-const { assistantText } = require('../lib/extract');
+const { assistantText, userPreview, toolCalls, matchesSubset } = require('../lib/extract');
+const { judge, normalizeJudge } = require('./judge');
 
 // Regression cases live alongside nodes but in their own dir so they survive
 // node pruning and are easy to commit to a repo for shared baselines.
@@ -46,11 +47,29 @@ function similarity(a, b) {
 }
 
 /**
+ * Normalize tool-call expectations into the shape stored on a case.
+ * Returns null when nothing about tools was asserted.
+ *
+ * @param {object|Array} [input] - { called[], notCalled[], exact } or a bare
+ *   array of names/specs treated as `called`.
+ */
+function normalizeTools(input) {
+  if (!input) return null;
+  const cfg = Array.isArray(input) ? { called: input } : input;
+  const called = (cfg.called || []).map((t) =>
+    typeof t === 'string' ? { name: t, args: null } : { name: t.name, args: t.args || null }
+  );
+  const notCalled = (cfg.notCalled || []).map((t) => (typeof t === 'string' ? t : t.name));
+  if (!called.length && !notCalled.length && !cfg.exact) return null;
+  return { called, notCalled, exact: Boolean(cfg.exact) };
+}
+
+/**
  * Pin a saved node as a regression baseline.
  *
  * @param {string} nodeId
  * @param {string} name - human label; also the case key (re-pin updates).
- * @param {object} [assertions] - { contains[], notContains[], regex[], minSimilarity }
+ * @param {object} [assertions] - { contains[], notContains[], regex[], minSimilarity, judge }
  * @returns {object} the saved case.
  */
 function pinNode(nodeId, name, assertions = {}) {
@@ -77,6 +96,13 @@ function pinNode(nodeId, name, assertions = {}) {
       // Default guard: flag if the new output drifts far from the baseline.
       minSimilarity:
         assertions.minSimilarity != null ? assertions.minSimilarity : 0.3,
+      // What the model DID, not what it said. Free and offline like the other
+      // mechanical checks — a tool call is structured data, so verifying it
+      // needs no model in the loop.
+      tools: normalizeTools(assertions.tools),
+      // Opt-in, and the only check that reads meaning. Costs an API call per
+      // run, so it stays off unless a rubric is supplied.
+      judge: normalizeJudge(assertions.judge),
     },
   };
 
@@ -109,7 +135,12 @@ function removeCase(nameOrId) {
 }
 
 /**
- * Evaluate a fresh response against a case's baseline + assertions.
+ * Evaluate a fresh response against a case's MECHANICAL assertions only —
+ * substring, regex, and word-overlap similarity. Deterministic, offline, free.
+ *
+ * The judge assertion is deliberately NOT run here: it costs a network call, so
+ * it lives behind the async `evaluateWithJudge`. Anything that wants the full
+ * verdict must opt into paying for it.
  *
  * @param {object} caseObj
  * @param {object} newResponse - provider response from the replay
@@ -153,8 +184,87 @@ function evaluate(caseObj, newResponse) {
     });
   }
 
+  // Tool-call assertions. Text checks ask whether the answer still reads right;
+  // these ask whether the agent still DID the right thing. A wrong sentence is
+  // annoying, a wrong action writes to somebody's system.
+  const calls = toolCalls(newResponse);
+  if (a.tools) {
+    for (const want of a.tools.called) {
+      const named = calls.filter((c) => c.name === want.name);
+      const hit = want.args ? named.find((c) => matchesSubset(want.args, c.args)) : named[0];
+      checks.push({
+        type: 'toolCalled',
+        ok: Boolean(hit),
+        detail: want.args
+          ? `${want.name}(${JSON.stringify(want.args)})${
+              !hit && named.length ? ` — called with ${JSON.stringify(named[0].args)}` : ''
+            }`
+          : want.name,
+      });
+    }
+    for (const name of a.tools.notCalled) {
+      checks.push({
+        type: 'toolNotCalled',
+        ok: !calls.some((c) => c.name === name),
+        detail: name,
+      });
+    }
+    if (a.tools.exact) {
+      // Sorted multiset compare: an EXTRA call is a real regression even when
+      // every expected call is present.
+      const got = calls.map((c) => c.name).sort();
+      const want = a.tools.called.map((t) => t.name).sort();
+      checks.push({
+        type: 'toolsExact',
+        ok: got.length === want.length && got.every((n, i) => n === want[i]),
+        detail: `called [${got.join(', ')}] vs expected [${want.join(', ')}]`,
+      });
+    }
+  }
+
   const passed = checks.every((c) => c.ok);
-  return { passed, similarity: sim, newText, checks };
+  return { passed, similarity: sim, newText, toolCalls: calls, checks };
+}
+
+/**
+ * Full evaluation: the mechanical checks, plus the LLM judge when the case has
+ * a rubric pinned and judging hasn't been disabled.
+ *
+ * A skipped judge is recorded as a passing check flagged `skipped` so the
+ * report can say so out loud — a gate that quietly stops running is how a
+ * regression suite rots without anyone noticing.
+ *
+ * @param {object} caseObj
+ * @param {object} newResponse - provider response from the replay
+ * @param {object} [opts] - { judge: false to skip, judgeApiKey, judgeUpstream }
+ * @returns {Promise<object>} { passed, similarity, checks }
+ */
+async function evaluateWithJudge(caseObj, newResponse, opts = {}) {
+  const result = evaluate(caseObj, newResponse);
+  const cfg = caseObj.assertions && caseObj.assertions.judge;
+  if (!cfg) return result;
+
+  if (opts.judge === false) {
+    result.checks.push({
+      type: 'judge',
+      ok: true,
+      skipped: true,
+      detail: 'skipped (judging disabled)',
+    });
+    return result;
+  }
+
+  const check = await judge(caseObj, result.newText, {
+    apiKey: opts.judgeApiKey,
+    upstream: opts.judgeUpstream,
+    userPrompt: userPreview(caseObj.request),
+  });
+  if (check) {
+    result.checks.push(check);
+    result.judgeScore = check.score;
+    result.passed = result.checks.every((c) => c.ok);
+  }
+  return result;
 }
 
 module.exports = {
@@ -163,6 +273,8 @@ module.exports = {
   getCase,
   removeCase,
   evaluate,
+  evaluateWithJudge,
+  normalizeTools,
   similarity,
   caseId,
   regDir,
