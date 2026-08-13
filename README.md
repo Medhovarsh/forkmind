@@ -9,7 +9,7 @@
 [![npm](https://img.shields.io/npm/v/forkmind.svg)](https://www.npmjs.com/package/forkmind)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![CI](https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml/badge.svg)](https://github.com/medhovarsh/forkmind/actions/workflows/ci.yml)
-[![Node](https://img.shields.io/badge/node-%E2%89%A518-43853d.svg)](https://nodejs.org)
+[![Node](https://img.shields.io/badge/node-%E2%89%A520-43853d.svg)](https://nodejs.org)
 [![MCP](https://img.shields.io/badge/MCP-registry-8a63d2.svg)](https://registry.modelcontextprotocol.io)
 [![Live site](https://img.shields.io/badge/live-medhovarsh.github.io%2Fforkmind-58a6ff.svg)](https://medhovarsh.github.io/forkmind/)
 

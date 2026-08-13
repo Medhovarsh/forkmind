@@ -38,7 +38,7 @@
     "prepack": "npm run dashboard:build"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "keywords": [
     "llm",

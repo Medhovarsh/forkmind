@@ -40,7 +40,7 @@ npm run lint       # eslint
 npm test           # jest
 ```
 
-CI runs lint + tests on Node 18/20/22 and builds the dashboard. Keep it green.
+CI runs lint + tests on Node 20/22/24 and builds the dashboard. Keep it green.
 
 ## Adding a provider
 
