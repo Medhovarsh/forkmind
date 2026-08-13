@@ -42,6 +42,24 @@ npm test           # jest
 
 CI runs lint + tests on Node 20/22/24 and builds the dashboard. Keep it green.
 
+### Live smoke tests
+
+The jest suite injects fake transports, so it proves the logic but never that a
+real provider accepts what we send. Two scripts close that gap. They make real
+API calls, so they are **not** part of `npm test` or CI — run them by hand when
+touching the judge, tool extraction, or replay threading:
+
+```bash
+node scripts/judge-smoke.js        # LLM judge against a live model
+node scripts/trajectory-smoke.js   # multi-turn replay + divergence detection
+```
+
+Both default to a local Ollama (`http://localhost:11434`, `llama3.2`) and need no
+API key. Override with `FORKMIND_UPSTREAM`, `FORKMIND_MODEL`, `FORKMIND_API_KEY`.
+The trajectory script needs a **tool-capable** model and exits non-zero if the
+model declines to call the tool — a trajectory test with no actions in it proves
+nothing, so it refuses to report a hollow pass.
+
 ## Adding a provider
 
 Most providers are OpenAI-compatible and need **no code** — point `upstream` at
